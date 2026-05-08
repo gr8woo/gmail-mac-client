@@ -2,6 +2,7 @@ import { app, BrowserWindow, shell } from "electron";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createDefaultProfileStore, registerProfileIpc } from "./ipc";
+import { GmailViewController } from "./gmailViewController";
 
 const allowedDevServerOrigin = "http://127.0.0.1:5173";
 
@@ -22,9 +23,9 @@ export async function createMainWindow(): Promise<BrowserWindow> {
     }
   });
 
-  registerProfileIpc(store, {
-    switchToProfile: async () => undefined
-  });
+  const gmailViewController = new GmailViewController(window, store);
+  gmailViewController.attach();
+  registerProfileIpc(store, gmailViewController);
 
   protectShellNavigation(window);
 
@@ -34,6 +35,11 @@ export async function createMainWindow(): Promise<BrowserWindow> {
     await window.loadURL(devServerUrl.href);
   } else {
     await window.loadFile(join(__dirname, "../renderer/index.html"));
+  }
+
+  const lastActiveProfileId = store.getState().lastActiveProfileId;
+  if (lastActiveProfileId) {
+    await gmailViewController.switchToProfile(lastActiveProfileId);
   }
 
   return window;

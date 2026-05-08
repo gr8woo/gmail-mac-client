@@ -19,7 +19,8 @@ export class GmailViewController {
   constructor(
     private readonly window: BrowserWindow,
     private readonly store: FileProfileStore,
-    private readonly startUrl = process.env.GMAIL_CLIENT_START_URL ?? DEFAULT_GMAIL_URL
+    private readonly startUrl = getConfiguredStartUrl(),
+    private readonly allowedPolicyBypassUrl = getAllowedPolicyBypassUrl(startUrl)
   ) {}
 
   attach(): void {
@@ -57,11 +58,11 @@ export class GmailViewController {
     });
 
     view.webContents.on("will-navigate", (event, url) => {
-      applyNavigationPolicy(event, url, this.startUrl);
+      applyNavigationPolicy(event, url, this.allowedPolicyBypassUrl);
     });
 
     view.webContents.on("will-redirect", (event, url) => {
-      applyNavigationPolicy(event, url, this.startUrl);
+      applyNavigationPolicy(event, url, this.allowedPolicyBypassUrl);
     });
 
     this.currentView = view;
@@ -71,7 +72,7 @@ export class GmailViewController {
     try {
       await view.webContents.loadURL(this.startUrl);
     } catch (error) {
-      if (token === this.switchToken && !view.webContents.isDestroyed()) {
+      if (token === this.switchToken && getLiveWebContents(view)) {
         throw error;
       }
     }
@@ -117,8 +118,8 @@ export function getGmailBounds(bounds: Rectangle): Rectangle {
   };
 }
 
-function applyNavigationPolicy(event: Event, url: string, allowedStartUrl: string): void {
-  if (isAllowedStartUrl(url, allowedStartUrl)) {
+function applyNavigationPolicy(event: Event, url: string, allowedPolicyBypassUrl: string | null): void {
+  if (allowedPolicyBypassUrl && isAllowedStartUrl(url, allowedPolicyBypassUrl)) {
     return;
   }
 
@@ -141,6 +142,18 @@ function isAllowedStartUrl(url: string, allowedStartUrl: string): boolean {
   } catch {
     return false;
   }
+}
+
+function getConfiguredStartUrl(): string {
+  if (process.env.GMAIL_CLIENT_E2E === "1") {
+    return process.env.GMAIL_CLIENT_START_URL ?? DEFAULT_GMAIL_URL;
+  }
+
+  return DEFAULT_GMAIL_URL;
+}
+
+function getAllowedPolicyBypassUrl(startUrl: string): string | null {
+  return process.env.GMAIL_CLIENT_E2E === "1" ? startUrl : null;
 }
 
 function getLiveWebContents(view: WebContentsView): WebContents | null {

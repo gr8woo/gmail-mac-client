@@ -7,17 +7,18 @@ import { pathToFileURL } from "node:url";
 test("creates a profile and shows the top profile dropdown", async () => {
   const fixtureUrl = pathToFileURL(join(process.cwd(), "tests/fixtures/gmail.html")).toString();
   const userDataDir = await realpath(await mkdtemp(join(tmpdir(), "gmail-mac-client-e2e-")));
-
-  const app = await electron.launch({
-    args: [".", `--user-data-dir=${userDataDir}`],
-    env: {
-      ...process.env,
-      GMAIL_CLIENT_E2E: "1",
-      GMAIL_CLIENT_START_URL: fixtureUrl
-    }
-  });
+  let app: Awaited<ReturnType<typeof electron.launch>> | null = null;
 
   try {
+    app = await electron.launch({
+      args: [".", `--user-data-dir=${userDataDir}`],
+      env: {
+        ...process.env,
+        GMAIL_CLIENT_E2E: "1",
+        GMAIL_CLIENT_START_URL: fixtureUrl
+      }
+    });
+
     const actualUserDataDir = await app.evaluate(({ app: electronApp }) =>
       electronApp.getPath("userData")
     );
@@ -31,7 +32,7 @@ test("creates a profile and shows the top profile dropdown", async () => {
 
     await expect(window.getByRole("combobox", { name: "Current profile" })).toHaveValue(/.+/);
   } finally {
-    await app.close();
+    await app?.close();
     await rm(userDataDir, { force: true, recursive: true });
   }
 });

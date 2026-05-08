@@ -1,9 +1,12 @@
 import { app, BrowserWindow } from "electron";
 import { join } from "node:path";
+import { createDefaultProfileStore, registerProfileIpc } from "./ipc";
 
 const allowedDevServerOrigin = "http://127.0.0.1:5173";
 
 export async function createMainWindow(): Promise<BrowserWindow> {
+  const store = createDefaultProfileStore();
+
   const window = new BrowserWindow({
     width: 1280,
     height: 860,
@@ -16,6 +19,10 @@ export async function createMainWindow(): Promise<BrowserWindow> {
       nodeIntegration: false,
       sandbox: true
     }
+  });
+
+  registerProfileIpc(store, {
+    switchToProfile: async () => undefined
   });
 
   const devServerUrl = getDevServerUrl();

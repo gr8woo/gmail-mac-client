@@ -1,5 +1,5 @@
 import { BrowserWindow, WebContentsView, shell } from "electron";
-import type { Rectangle } from "electron";
+import type { Event, Rectangle } from "electron";
 import { getPartitionName } from "../shared/profile";
 import { classifyNavigationUrl } from "../shared/urlPolicy";
 import type { FileProfileStore } from "./profileStore";
@@ -52,17 +52,11 @@ export class GmailViewController {
     });
 
     view.webContents.on("will-navigate", (event, url) => {
-      const decision = classifyNavigationUrl(url);
+      applyNavigationPolicy(event, url);
+    });
 
-      if (decision === "internal") {
-        return;
-      }
-
-      event.preventDefault();
-
-      if (decision === "external") {
-        void shell.openExternal(url);
-      }
+    view.webContents.on("will-redirect", (event, url) => {
+      applyNavigationPolicy(event, url);
     });
 
     this.currentView = view;
@@ -104,4 +98,18 @@ export function getGmailBounds(bounds: Rectangle): Rectangle {
     width: bounds.width,
     height: Math.max(0, bounds.height - APP_BAR_HEIGHT)
   };
+}
+
+function applyNavigationPolicy(event: Event, url: string): void {
+  const decision = classifyNavigationUrl(url);
+
+  if (decision === "internal") {
+    return;
+  }
+
+  event.preventDefault();
+
+  if (decision === "external") {
+    void shell.openExternal(url);
+  }
 }

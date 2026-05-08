@@ -2,4 +2,5 @@
 node_modules/
 dist/
 release/
+test-results/
 .DS_Store

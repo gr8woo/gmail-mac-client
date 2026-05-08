@@ -12,9 +12,6 @@
     "typecheck": "tsc --noEmit -p tsconfig.renderer.json && tsc --noEmit -p tsconfig.main.json",
     "dist:mac": "npm run build && electron-builder --mac dir"
   },
-  "build": {
-    "extends": null
-  },
   "dependencies": {
     "@vitejs/plugin-react": "^5.0.0",
     "react": "^19.0.0",

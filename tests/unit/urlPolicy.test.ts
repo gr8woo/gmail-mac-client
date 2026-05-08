@@ -18,7 +18,27 @@ describe("classifyNavigationUrl", () => {
     expect(classifyNavigationUrl("https://example.com/article")).toBe("external");
   });
 
-  it("opens invalid URLs externally", () => {
-    expect(classifyNavigationUrl("not a url")).toBe("external");
+  it("opens http web URLs externally", () => {
+    expect(classifyNavigationUrl("http://example.com/article")).toBe("external");
+  });
+
+  it("opens gstatic URLs externally", () => {
+    expect(classifyNavigationUrl("https://ssl.gstatic.com/ui/v1/icons/mail/rfr/logo_gmail_lockup_default_1x_r5.png")).toBe(
+      "external"
+    );
+    expect(classifyNavigationUrl("https://www.gstatic.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png")).toBe(
+      "external"
+    );
+  });
+
+  it("blocks invalid URLs", () => {
+    expect(classifyNavigationUrl("not a url")).toBe("blocked");
+  });
+
+  it("blocks unsafe non-web schemes", () => {
+    expect(classifyNavigationUrl("file:///Users/example/secrets.txt")).toBe("blocked");
+    expect(classifyNavigationUrl("javascript:alert('xss')")).toBe("blocked");
+    expect(classifyNavigationUrl("data:text/html,<script>alert('xss')</script>")).toBe("blocked");
+    expect(classifyNavigationUrl("slack://channel?id=123")).toBe("blocked");
   });
 });

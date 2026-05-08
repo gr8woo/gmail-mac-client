@@ -1,5 +1,6 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, shell } from "electron";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { createDefaultProfileStore, registerProfileIpc } from "./ipc";
 
 const allowedDevServerOrigin = "http://127.0.0.1:5173";
@@ -25,6 +26,8 @@ export async function createMainWindow(): Promise<BrowserWindow> {
     switchToProfile: async () => undefined
   });
 
+  protectShellNavigation(window);
+
   const devServerUrl = getDevServerUrl();
 
   if (devServerUrl) {
@@ -34,6 +37,22 @@ export async function createMainWindow(): Promise<BrowserWindow> {
   }
 
   return window;
+}
+
+function protectShellNavigation(window: BrowserWindow): void {
+  window.webContents.on("will-navigate", (event, url) => {
+    if (isTrustedShellUrl(url)) {
+      return;
+    }
+
+    event.preventDefault();
+    openExternalHttpUrl(url);
+  });
+
+  window.webContents.setWindowOpenHandler(({ url }) => {
+    openExternalHttpUrl(url);
+    return { action: "deny" };
+  });
 }
 
 function getDevServerUrl(): URL | null {
@@ -60,4 +79,41 @@ function getDevServerUrl(): URL | null {
   }
 
   return parsedUrl;
+}
+
+function isTrustedShellUrl(url: string): boolean {
+  let parsedUrl: URL;
+
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    return false;
+  }
+
+  if (!app.isPackaged && parsedUrl.origin === allowedDevServerOrigin) {
+    return true;
+  }
+
+  return parsedUrl.href === getRendererIndexUrl().href;
+}
+
+function getRendererIndexUrl(): URL {
+  return pathToFileURL(join(__dirname, "../renderer/index.html"));
+}
+
+function openExternalHttpUrl(url: string): void {
+  if (!isSafeExternalUrl(url)) {
+    return;
+  }
+
+  void shell.openExternal(url);
+}
+
+function isSafeExternalUrl(url: string): boolean {
+  try {
+    const protocol = new URL(url).protocol;
+    return protocol === "https:" || protocol === "http:";
+  } catch {
+    return false;
+  }
 }

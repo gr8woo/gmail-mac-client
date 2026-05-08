@@ -1,8 +1,11 @@
 import { app, ipcMain, session } from "electron";
+import type { IpcMainInvokeEvent, WebFrameMain } from "electron";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { getPartitionName } from "../shared/profile";
 import { FileProfileStore } from "./profileStore";
 
+const allowedDevServerOrigin = "http://127.0.0.1:5173";
 const profileIpcChannels = [
   "profiles:getState",
   "profiles:create",
@@ -34,25 +37,29 @@ export function registerProfileIpc(store: FileProfileStore, target: ProfileSwitc
     return;
   }
 
-  ipcMain.handle("profiles:getState", () => {
+  ipcMain.handle("profiles:getState", (event) => {
+    assertTrustedSender(event);
     return getRegistration().store.getState();
   });
 
-  ipcMain.handle("profiles:create", async (_event, displayName: unknown) => {
+  ipcMain.handle("profiles:create", async (event, displayName: unknown) => {
+    assertTrustedSender(event);
     const { store, target } = getRegistration();
     const profile = store.createProfile(requireString(displayName, "displayName"));
     await target.switchToProfile(profile.id);
     return profile;
   });
 
-  ipcMain.handle("profiles:rename", (_event, profileId: unknown, displayName: unknown) => {
+  ipcMain.handle("profiles:rename", (event, profileId: unknown, displayName: unknown) => {
+    assertTrustedSender(event);
     return getRegistration().store.renameProfile(
       requireString(profileId, "profileId"),
       requireString(displayName, "displayName")
     );
   });
 
-  ipcMain.handle("profiles:delete", async (_event, profileId: unknown) => {
+  ipcMain.handle("profiles:delete", async (event, profileId: unknown) => {
+    assertTrustedSender(event);
     const { store, target } = getRegistration();
     const id = requireString(profileId, "profileId");
     const profile = store.getState().profiles.find((candidate) => candidate.id === id);
@@ -71,7 +78,8 @@ export function registerProfileIpc(store: FileProfileStore, target: ProfileSwitc
     }
   });
 
-  ipcMain.handle("profiles:switch", async (_event, profileId: unknown) => {
+  ipcMain.handle("profiles:switch", async (event, profileId: unknown) => {
+    assertTrustedSender(event);
     const { store, target } = getRegistration();
     const id = requireString(profileId, "profileId");
 
@@ -105,4 +113,26 @@ function requireString(value: unknown, name: string): string {
   }
 
   return value;
+}
+
+function assertTrustedSender(event: IpcMainInvokeEvent): void {
+  if (!isTrustedSenderFrame(event.senderFrame)) {
+    throw new Error("Untrusted profile IPC sender");
+  }
+}
+
+function isTrustedSenderFrame(frame: WebFrameMain | null): boolean {
+  if (!frame || frame.isDestroyed() || frame.parent !== null) {
+    return false;
+  }
+
+  if (!app.isPackaged && frame.origin === allowedDevServerOrigin) {
+    return true;
+  }
+
+  return frame.url === getRendererIndexUrl().href;
+}
+
+function getRendererIndexUrl(): URL {
+  return pathToFileURL(join(__dirname, "../renderer/index.html"));
 }

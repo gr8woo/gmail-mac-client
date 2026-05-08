@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -32,6 +32,32 @@ describe("FileProfileStore", () => {
     expect(profile.displayName).toBe("Work");
     expect(reloaded.getState().profiles).toHaveLength(1);
     expect(reloaded.getState().lastActiveProfileId).toBe(profile.id);
+  });
+
+  it("persists valid state after repeated saves", () => {
+    const store = makeStore();
+    const profile = store.createProfile("Work", "2026-05-08T00:00:00.000Z");
+
+    store.renameProfile(profile.id, "Primary Work", "2026-05-08T01:00:00.000Z");
+
+    const reloaded = new FileProfileStore(store.filePath);
+    expect(reloaded.getState()).toEqual({
+      profiles: [
+        {
+          ...profile,
+          displayName: "Primary Work",
+          updatedAt: "2026-05-08T01:00:00.000Z"
+        }
+      ],
+      lastActiveProfileId: profile.id
+    });
+  });
+
+  it("throws a clear error for invalid persisted state shape", () => {
+    const store = makeStore();
+    writeFileSync(store.filePath, JSON.stringify({ profiles: "invalid", lastActiveProfileId: null }), "utf8");
+
+    expect(() => store.getState()).toThrow("Invalid profile store: profiles must be an array");
   });
 
   it("renames a profile", () => {

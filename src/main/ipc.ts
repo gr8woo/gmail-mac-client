@@ -16,6 +16,7 @@ const profileIpcChannels = [
 
 export interface ProfileSwitchTarget {
   switchToProfile(profileId: string): Promise<void>;
+  clearProfileView(): void;
 }
 
 interface ProfileIpcRegistration {
@@ -62,19 +63,28 @@ export function registerProfileIpc(store: FileProfileStore, target: ProfileSwitc
     assertTrustedSender(event);
     const { store, target } = getRegistration();
     const id = requireString(profileId, "profileId");
-    const profile = store.getState().profiles.find((candidate) => candidate.id === id);
+    const stateBeforeDelete = store.getState();
+    const profile = stateBeforeDelete.profiles.find((candidate) => candidate.id === id);
 
     if (!profile) {
       return;
     }
 
+    const wasActiveProfile = stateBeforeDelete.lastActiveProfileId === id;
+
     await session.fromPartition(getPartitionName(profile.id)).clearStorageData();
 
     store.deleteProfile(id);
 
+    if (!wasActiveProfile) {
+      return;
+    }
+
     const nextProfileId = store.getState().lastActiveProfileId;
     if (nextProfileId) {
       await target.switchToProfile(nextProfileId);
+    } else {
+      target.clearProfileView();
     }
   });
 

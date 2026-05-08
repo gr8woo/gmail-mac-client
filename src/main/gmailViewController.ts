@@ -86,6 +86,11 @@ export class GmailViewController {
     this.currentView.setBounds(getGmailBounds(this.window.getContentBounds()));
   }
 
+  clearProfileView(): void {
+    ++this.switchToken;
+    this.closeCurrentView();
+  }
+
   private closeCurrentView(): void {
     if (!this.currentView) {
       return;

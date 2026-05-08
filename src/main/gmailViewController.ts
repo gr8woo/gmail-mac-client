@@ -66,6 +66,20 @@ export class GmailViewController {
       applyNavigationPolicy(event, url, this.allowedPolicyBypassUrl);
     });
 
+    view.webContents.on("did-navigate", (_event, url) => {
+      debugNavigation("did-navigate", url);
+    });
+
+    view.webContents.on("did-navigate-in-page", (_event, url) => {
+      debugNavigation("did-navigate-in-page", url);
+    });
+
+    view.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedUrl, isMainFrame) => {
+      if (isMainFrame) {
+        debugNavigation(`did-fail-load:${errorCode}:${errorDescription}`, validatedUrl);
+      }
+    });
+
     view.webContents.on("will-redirect", (event, url, _isInPlace, isMainFrame) => {
       if (isMainFrame) {
         applyNavigationPolicy(event, url, this.allowedPolicyBypassUrl);

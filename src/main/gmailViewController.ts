@@ -1,5 +1,6 @@
 import { BrowserWindow, WebContentsView, shell } from "electron";
 import type { Rectangle } from "electron";
+import { getPartitionName } from "../shared/profile";
 import { classifyNavigationUrl } from "../shared/urlPolicy";
 import type { FileProfileStore } from "./profileStore";
 
@@ -8,6 +9,7 @@ const DEFAULT_GMAIL_URL = "https://mail.google.com";
 
 export class GmailViewController {
   private currentView: WebContentsView | null = null;
+  private switchToken = 0;
 
   constructor(
     private readonly window: BrowserWindow,
@@ -27,11 +29,12 @@ export class GmailViewController {
       throw new Error(`Profile not found: ${profileId}`);
     }
 
+    const token = ++this.switchToken;
     this.closeCurrentView();
 
     const view = new WebContentsView({
       webPreferences: {
-        partition: profile.partition,
+        partition: getPartitionName(profile.id),
         nodeIntegration: false,
         contextIsolation: true,
         sandbox: true
@@ -45,7 +48,7 @@ export class GmailViewController {
         void shell.openExternal(url);
       }
 
-      return { action: decision === "internal" ? "allow" : "deny" };
+      return { action: "deny" };
     });
 
     view.webContents.on("will-navigate", (event, url) => {
@@ -65,7 +68,14 @@ export class GmailViewController {
     this.currentView = view;
     this.window.contentView.addChildView(view);
     this.layout();
-    await view.webContents.loadURL(this.startUrl);
+
+    try {
+      await view.webContents.loadURL(this.startUrl);
+    } catch (error) {
+      if (token === this.switchToken && !view.webContents.isDestroyed()) {
+        throw error;
+      }
+    }
   }
 
   layout(): void {

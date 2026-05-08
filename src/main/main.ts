@@ -23,7 +23,7 @@ app.whenReady().then(async () => {
 });
 
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
+  if (process.platform !== "darwin" || process.env.GMAIL_CLIENT_E2E === "1") {
     app.quit();
   }
 });

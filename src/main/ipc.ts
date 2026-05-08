@@ -17,6 +17,7 @@ const profileIpcChannels = [
 export interface ProfileSwitchTarget {
   switchToProfile(profileId: string): Promise<void>;
   clearProfileView(): void;
+  closeProfileView(profileId: string): void;
 }
 
 interface ProfileIpcRegistration {
@@ -72,6 +73,7 @@ export function registerProfileIpc(store: FileProfileStore, target: ProfileSwitc
 
     const wasActiveProfile = stateBeforeDelete.lastActiveProfileId === id;
 
+    target.closeProfileView(id);
     await session.fromPartition(getPartitionName(profile.id)).clearStorageData();
 
     store.deleteProfile(id);

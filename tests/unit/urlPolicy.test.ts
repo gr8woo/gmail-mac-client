@@ -18,8 +18,16 @@ describe("classifyNavigationUrl", () => {
     expect(classifyNavigationUrl("https://accounts.youtube.com/accounts/CheckConnection")).toBe("internal");
   });
 
+  it("keeps regional Google account session redirects in the app", () => {
+    expect(classifyNavigationUrl("https://accounts.google.co.kr/accounts/SetSID")).toBe("internal");
+  });
+
   it("keeps Microsoft SAML sign-in redirects in the app", () => {
     expect(classifyNavigationUrl("https://login.microsoftonline.com/example/saml2")).toBe("internal");
+  });
+
+  it("keeps Google Workspace SAML ACS redirects in the app", () => {
+    expect(classifyNavigationUrl("https://www.google.com/a/zigbang.com/acs")).toBe("internal");
   });
 
   it("opens non-Gmail URLs externally", () => {

@@ -3,6 +3,7 @@ export type NavigationDecision = "internal" | "external" | "blocked";
 const INTERNAL_HOSTS = new Set([
   "mail.google.com",
   "accounts.google.com",
+  "accounts.google.co.kr",
   "accounts.youtube.com",
   "login.microsoftonline.com",
   "myaccount.google.com",
@@ -13,7 +14,7 @@ export function classifyNavigationUrl(rawUrl: string): NavigationDecision {
   try {
     const url = new URL(rawUrl);
 
-    if (url.protocol === "https:" && INTERNAL_HOSTS.has(url.hostname)) {
+    if (url.protocol === "https:" && isInternalHttpsUrl(url)) {
       return "internal";
     }
 
@@ -25,4 +26,12 @@ export function classifyNavigationUrl(rawUrl: string): NavigationDecision {
   } catch {
     return "blocked";
   }
+}
+
+function isInternalHttpsUrl(url: URL): boolean {
+  if (INTERNAL_HOSTS.has(url.hostname)) {
+    return true;
+  }
+
+  return url.hostname === "www.google.com" && /^\/a\/[^/]+\/acs$/u.test(url.pathname);
 }

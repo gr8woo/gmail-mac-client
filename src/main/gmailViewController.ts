@@ -9,14 +9,21 @@ const DEFAULT_GMAIL_URL =
   "https://accounts.google.com/v3/signin/identifier?service=mail&continue=https%3A%2F%2Fmail.google.com%2Fmail%2Fu%2F0%2F&followup=https%3A%2F%2Fmail.google.com%2Fmail%2Fu%2F0%2F&flowName=GlifWebSignIn&flowEntry=ServiceLogin";
 const SAFARI_COMPATIBLE_USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36";
+type WindowOpenDisposition =
+  | { action: "load-in-view"; url: string }
+  | { action: "open-external"; url: string }
+  | { action: "deny" };
+type ProfileSwitchAction = "activate-cached" | "create-and-load";
 
 export class GmailViewController {
   private currentView: WebContentsView | null = null;
+  private currentProfileId: string | null = null;
+  private readonly profileViews = new Map<string, WebContentsView>();
   private switchToken = 0;
   private readonly layoutCurrentView = () => this.layout();
   private readonly closeCurrentViewWhenWindowCloses = () => {
     this.window.off("resize", this.layoutCurrentView);
-    this.closeCurrentView();
+    this.closeAllProfileViews();
   };
 
   constructor(
@@ -39,11 +46,47 @@ export class GmailViewController {
     }
 
     const token = ++this.switchToken;
-    this.closeCurrentView();
+    if (this.currentProfileId === profile.id && this.currentView) {
+      this.layout();
+      return;
+    }
 
+    this.detachCurrentView();
+
+    const switchAction = getProfileSwitchAction(new Set(this.profileViews.keys()), profile.id);
+    const view =
+      switchAction === "activate-cached" ? this.profileViews.get(profile.id) : this.createProfileView(profile.id);
+
+    if (!view) {
+      throw new Error(`Profile view not found: ${profile.id}`);
+    }
+
+    this.currentProfileId = profile.id;
+    this.currentView = view;
+    this.window.contentView.addChildView(view);
+    this.layout();
+
+    if (switchAction === "activate-cached") {
+      return;
+    }
+
+    try {
+      await view.webContents.loadURL(this.startUrl);
+    } catch (error) {
+      if (isIgnorableLoadError(error)) {
+        return;
+      }
+
+      if (token === this.switchToken && getLiveWebContents(view)) {
+        throw error;
+      }
+    }
+  }
+
+  private createProfileView(profileId: string): WebContentsView {
     const view = new WebContentsView({
       webPreferences: {
-        partition: getPartitionName(profile.id),
+        partition: getPartitionName(profileId),
         nodeIntegration: false,
         contextIsolation: true,
         sandbox: true
@@ -53,10 +96,17 @@ export class GmailViewController {
     view.webContents.setUserAgent(getGoogleCompatibleUserAgent(view.webContents.getUserAgent()));
 
     view.webContents.setWindowOpenHandler(({ url }) => {
-      const decision = classifyNavigationUrl(url);
+      const disposition = getWindowOpenDisposition(url);
+      debugNavigation(`window-open:${disposition.action}`, url);
 
-      if (decision === "external") {
-        void shell.openExternal(url);
+      if (disposition.action === "load-in-view") {
+        void view.webContents.loadURL(disposition.url).catch((error: unknown) => {
+          if (!isIgnorableLoadError(error)) {
+            console.error(error);
+          }
+        });
+      } else if (disposition.action === "open-external") {
+        void shell.openExternal(disposition.url);
       }
 
       return { action: "deny" };
@@ -88,17 +138,8 @@ export class GmailViewController {
       }
     });
 
-    this.currentView = view;
-    this.window.contentView.addChildView(view);
-    this.layout();
-
-    try {
-      await view.webContents.loadURL(this.startUrl);
-    } catch (error) {
-      if (token === this.switchToken && getLiveWebContents(view)) {
-        throw error;
-      }
-    }
+    this.profileViews.set(profileId, view);
+    return view;
   }
 
   layout(): void {
@@ -111,22 +152,42 @@ export class GmailViewController {
 
   clearProfileView(): void {
     ++this.switchToken;
-    this.closeCurrentView();
+    this.closeAllProfileViews();
   }
 
-  private closeCurrentView(): void {
+  closeProfileView(profileId: string): void {
+    ++this.switchToken;
+    this.closeProfileViewById(profileId);
+  }
+
+  private detachCurrentView(): void {
     if (!this.currentView) {
       return;
     }
 
     const view = this.currentView;
     this.currentView = null;
+    this.currentProfileId = null;
 
     if (!this.window.isDestroyed()) {
       ignoreDestroyedObjectError(() => {
         this.window.contentView.removeChildView(view);
       });
     }
+  }
+
+  private closeProfileViewById(profileId: string): void {
+    const view = this.profileViews.get(profileId);
+
+    if (!view) {
+      return;
+    }
+
+    if (this.currentProfileId === profileId) {
+      this.detachCurrentView();
+    }
+
+    this.profileViews.delete(profileId);
 
     const webContents = getLiveWebContents(view);
     if (webContents) {
@@ -134,6 +195,17 @@ export class GmailViewController {
         webContents.close();
       });
     }
+  }
+
+  private closeAllProfileViews(): void {
+    const profileIds = [...this.profileViews.keys()];
+
+    for (const profileId of profileIds) {
+      this.closeProfileViewById(profileId);
+    }
+
+    this.currentView = null;
+    this.currentProfileId = null;
   }
 }
 
@@ -144,6 +216,24 @@ export function getGmailBounds(bounds: Rectangle): Rectangle {
     width: bounds.width,
     height: Math.max(0, bounds.height - APP_BAR_HEIGHT)
   };
+}
+
+export function getProfileSwitchAction(cachedProfileIds: ReadonlySet<string>, profileId: string): ProfileSwitchAction {
+  return cachedProfileIds.has(profileId) ? "activate-cached" : "create-and-load";
+}
+
+export function getWindowOpenDisposition(rawUrl: string): WindowOpenDisposition {
+  const decision = classifyNavigationUrl(rawUrl);
+
+  if (decision === "internal") {
+    return { action: "load-in-view", url: rawUrl };
+  }
+
+  if (decision === "external") {
+    return { action: "open-external", url: rawUrl };
+  }
+
+  return { action: "deny" };
 }
 
 function applyNavigationPolicy(event: Event, url: string, allowedPolicyBypassUrl: string | null): void {
@@ -221,6 +311,10 @@ function ignoreDestroyedObjectError(action: () => void): void {
 
 function isDestroyedObjectError(error: unknown): boolean {
   return error instanceof Error && error.message.includes("Object has been destroyed");
+}
+
+export function isIgnorableLoadError(error: unknown): boolean {
+  return error instanceof Error && error.message.includes("ERR_ABORTED");
 }
 
 function debugNavigation(decision: string, url: string): void {

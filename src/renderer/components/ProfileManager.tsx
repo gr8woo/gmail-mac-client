@@ -52,13 +52,7 @@ export function ProfileManager({
   }
 
   return (
-    <section className="profile-manager" aria-label="Profile management">
-      <div className="profile-manager-header">
-        <h2>Profiles</h2>
-        <button type="button" onClick={onClose}>
-          Close
-        </button>
-      </div>
+    <div className="app-bar-manager" role="toolbar" aria-label="Profile management">
       <form onSubmit={submit}>
         <label>
           New profile name
@@ -83,6 +77,9 @@ export function ProfileManager({
           </li>
         ))}
       </ul>
-    </section>
+      <button type="button" onClick={onClose}>
+        Close
+      </button>
+    </div>
   );
 }

@@ -35,8 +35,7 @@ select {
   width: min(420px, calc(100vw - 32px));
 }
 
-.first-run h1,
-.profile-manager h2 {
+.first-run h1 {
   margin: 0 0 16px;
   font-size: 20px;
   font-weight: 650;
@@ -44,13 +43,13 @@ select {
 }
 
 .first-run form,
-.profile-manager form {
+.app-bar-manager form {
   display: grid;
   gap: 12px;
 }
 
 .first-run label,
-.profile-manager label {
+.app-bar-manager label {
   display: grid;
   gap: 6px;
   font-size: 13px;
@@ -58,7 +57,7 @@ select {
 }
 
 .first-run input,
-.profile-manager input,
+.app-bar-manager input,
 .app-bar select {
   height: 32px;
   min-width: 0;
@@ -70,7 +69,7 @@ select {
 }
 
 .first-run button,
-.profile-manager button,
+.app-bar-manager button,
 .app-bar button {
   height: 32px;
   border: 1px solid #d0d7de;
@@ -96,51 +95,63 @@ button:disabled {
   padding: 6px 10px;
   border-bottom: 1px solid #d0d7de;
   background: #ffffff;
+  overflow: hidden;
+}
+
+.profile-dropdown,
+.app-bar-manager {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .app-bar select {
   width: min(260px, calc(100vw - 160px));
 }
 
-.profile-manager {
-  position: absolute;
-  top: 52px;
-  right: 12px;
-  z-index: 10;
-  width: min(360px, calc(100vw - 24px));
-  padding: 14px;
-  border: 1px solid #d0d7de;
-  border-radius: 8px;
-  background: #ffffff;
-  box-shadow: 0 12px 28px rgba(31, 35, 40, 0.18);
+.app-bar-manager {
+  flex: 1;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
-.profile-manager-header {
+.app-bar-manager::-webkit-scrollbar {
+  display: none;
+}
+
+.app-bar-manager form {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
 }
 
-.profile-manager-header h2 {
-  margin-bottom: 12px;
+.app-bar-manager label {
+  align-items: center;
+  grid-auto-flow: column;
+  white-space: nowrap;
 }
 
-.profile-manager ul {
-  display: grid;
+.app-bar-manager ul {
+  display: flex;
+  align-items: center;
   gap: 8px;
-  margin: 14px 0 0;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.profile-manager li {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+.app-bar-manager li {
+  display: flex;
+  align-items: center;
   gap: 8px;
 }
 
 .status-bar {
-  margin: 8px 10px;
+  margin: 0 0 0 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 13px;
 }

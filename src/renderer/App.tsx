@@ -11,10 +11,12 @@ export function App() {
   const [isManagingProfiles, setIsManagingProfiles] = useState(false);
   const [status, setStatus] = useState<string | null>("Loading profiles...");
 
-  async function refreshState() {
+  async function refreshState(options: { clearStatus?: boolean } = {}) {
     const nextState = await gmailClient.getProfileState();
     setState(nextState);
-    setStatus(null);
+    if (options.clearStatus ?? true) {
+      setStatus(null);
+    }
   }
 
   useEffect(() => {
@@ -33,8 +35,13 @@ export function App() {
       return;
     }
 
-    await gmailClient.switchProfile(profileId);
-    await refreshState();
+    try {
+      await gmailClient.switchProfile(profileId);
+      await refreshState();
+    } catch (caught) {
+      setStatus(caught instanceof Error ? caught.message : "Unable to switch profile");
+      await refreshState({ clearStatus: false }).catch(() => undefined);
+    }
   }
 
   async function renameProfile(profileId: string, displayName: string) {
@@ -49,8 +56,13 @@ export function App() {
       return;
     }
 
-    await gmailClient.deleteProfile(profileId);
-    await refreshState();
+    try {
+      await gmailClient.deleteProfile(profileId);
+      await refreshState();
+    } catch (caught) {
+      setStatus(caught instanceof Error ? caught.message : "Unable to delete profile");
+      await refreshState({ clearStatus: false }).catch(() => undefined);
+    }
   }
 
   if (!state) {
@@ -68,22 +80,25 @@ export function App() {
 
   return (
     <main className="app-shell">
-      <ProfileDropdown
-        profiles={state.profiles}
-        activeProfileId={state.lastActiveProfileId}
-        onSwitchProfile={switchProfile}
-        onOpenManager={() => setIsManagingProfiles(true)}
-      />
-      {isManagingProfiles ? (
-        <ProfileManager
-          profiles={state.profiles}
-          onCreateProfile={createProfile}
-          onRenameProfile={renameProfile}
-          onDeleteProfile={deleteProfile}
-          onClose={() => setIsManagingProfiles(false)}
-        />
-      ) : null}
-      <StatusBar message={status} />
+      <header className="app-bar">
+        {isManagingProfiles ? (
+          <ProfileManager
+            profiles={state.profiles}
+            onCreateProfile={createProfile}
+            onRenameProfile={renameProfile}
+            onDeleteProfile={deleteProfile}
+            onClose={() => setIsManagingProfiles(false)}
+          />
+        ) : (
+          <ProfileDropdown
+            profiles={state.profiles}
+            activeProfileId={state.lastActiveProfileId}
+            onSwitchProfile={switchProfile}
+            onOpenManager={() => setIsManagingProfiles(true)}
+          />
+        )}
+        <StatusBar message={status} />
+      </header>
     </main>
   );
 }

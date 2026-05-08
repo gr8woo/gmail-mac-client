@@ -108,6 +108,21 @@ describe("App", () => {
     expect(api.renameProfile).not.toHaveBeenCalled();
   });
 
+  it("keeps profile management inside the app bar", async () => {
+    installApi({
+      lastActiveProfileId: "profile_1",
+      profiles: [workProfile]
+    });
+
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Manage profiles" }));
+
+    const manager = screen.getByRole("toolbar", { name: "Profile management" });
+    expect(manager).toHaveClass("app-bar-manager");
+    expect(manager).not.toHaveClass("profile-manager");
+  });
+
   it("confirms before deleting a profile", async () => {
     const api = installApi({
       lastActiveProfileId: "profile_1",
@@ -122,5 +137,37 @@ describe("App", () => {
 
     expect(window.confirm).toHaveBeenCalledWith("Delete this profile and its local Gmail session data?");
     expect(api.deleteProfile).not.toHaveBeenCalled();
+  });
+
+  it("surfaces switch profile failures without an unhandled rejection", async () => {
+    const api = installApi({
+      lastActiveProfileId: "profile_1",
+      profiles: [workProfile, personalProfile]
+    });
+    api.switchProfile.mockRejectedValueOnce(new Error("Switch failed"));
+
+    render(<App />);
+
+    fireEvent.change(await screen.findByRole("combobox", { name: "Current profile" }), {
+      target: { value: "profile_2" }
+    });
+
+    expect(await screen.findByRole("status")).toHaveTextContent("Switch failed");
+  });
+
+  it("surfaces delete profile failures after confirmation", async () => {
+    const api = installApi({
+      lastActiveProfileId: "profile_1",
+      profiles: [workProfile]
+    });
+    api.deleteProfile.mockRejectedValueOnce(new Error("Delete failed"));
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Manage profiles" }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete Work" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent("Delete failed");
   });
 });

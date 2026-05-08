@@ -13,7 +13,7 @@ export function ProfileDropdown({ profiles, activeProfileId, onSwitchProfile, on
     : profiles[0]?.id ?? "";
 
   return (
-    <header className="app-bar">
+    <div className="profile-dropdown">
       <select
         aria-label="Current profile"
         value={selectedProfileId ?? ""}
@@ -28,6 +28,6 @@ export function ProfileDropdown({ profiles, activeProfileId, onSwitchProfile, on
       <button type="button" onClick={onOpenManager}>
         Manage profiles
       </button>
-    </header>
+    </div>
   );
 }

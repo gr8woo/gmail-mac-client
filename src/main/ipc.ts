@@ -1,5 +1,6 @@
 import { app, ipcMain, session } from "electron";
 import { join } from "node:path";
+import { getPartitionName } from "../shared/profile";
 import { FileProfileStore } from "./profileStore";
 
 const profileIpcChannels = [
@@ -56,11 +57,13 @@ export function registerProfileIpc(store: FileProfileStore, target: ProfileSwitc
     const id = requireString(profileId, "profileId");
     const profile = store.getState().profiles.find((candidate) => candidate.id === id);
 
-    store.deleteProfile(id);
-
-    if (profile) {
-      await session.fromPartition(profile.partition).clearStorageData();
+    if (!profile) {
+      return;
     }
+
+    await session.fromPartition(getPartitionName(profile.id)).clearStorageData();
+
+    store.deleteProfile(id);
 
     const nextProfileId = store.getState().lastActiveProfileId;
     if (nextProfileId) {

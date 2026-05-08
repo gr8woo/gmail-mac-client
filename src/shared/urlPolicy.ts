@@ -3,6 +3,8 @@ export type NavigationDecision = "internal" | "external" | "blocked";
 const INTERNAL_HOSTS = new Set([
   "mail.google.com",
   "accounts.google.com",
+  "accounts.youtube.com",
+  "login.microsoftonline.com",
   "myaccount.google.com",
   "oauthaccountmanager.googleapis.com"
 ]);

@@ -14,6 +14,14 @@ describe("classifyNavigationUrl", () => {
     expect(classifyNavigationUrl("https://oauthaccountmanager.googleapis.com/v1/issuetoken")).toBe("internal");
   });
 
+  it("keeps Google sign-in connection checks in the app", () => {
+    expect(classifyNavigationUrl("https://accounts.youtube.com/accounts/CheckConnection")).toBe("internal");
+  });
+
+  it("keeps Microsoft SAML sign-in redirects in the app", () => {
+    expect(classifyNavigationUrl("https://login.microsoftonline.com/example/saml2")).toBe("internal");
+  });
+
   it("opens non-Gmail URLs externally", () => {
     expect(classifyNavigationUrl("https://example.com/article")).toBe("external");
   });

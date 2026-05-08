@@ -5,7 +5,10 @@ import { classifyNavigationUrl } from "../shared/urlPolicy";
 import type { FileProfileStore } from "./profileStore";
 
 const APP_BAR_HEIGHT = 44;
-const DEFAULT_GMAIL_URL = "https://mail.google.com";
+const DEFAULT_GMAIL_URL =
+  "https://accounts.google.com/v3/signin/identifier?service=mail&continue=https%3A%2F%2Fmail.google.com%2Fmail%2Fu%2F0%2F&followup=https%3A%2F%2Fmail.google.com%2Fmail%2Fu%2F0%2F&flowName=GlifWebSignIn&flowEntry=ServiceLogin";
+const SAFARI_COMPATIBLE_USER_AGENT =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36";
 
 export class GmailViewController {
   private currentView: WebContentsView | null = null;
@@ -47,6 +50,8 @@ export class GmailViewController {
       }
     });
 
+    view.webContents.setUserAgent(getGoogleCompatibleUserAgent(view.webContents.getUserAgent()));
+
     view.webContents.setWindowOpenHandler(({ url }) => {
       const decision = classifyNavigationUrl(url);
 
@@ -61,8 +66,12 @@ export class GmailViewController {
       applyNavigationPolicy(event, url, this.allowedPolicyBypassUrl);
     });
 
-    view.webContents.on("will-redirect", (event, url) => {
-      applyNavigationPolicy(event, url, this.allowedPolicyBypassUrl);
+    view.webContents.on("will-redirect", (event, url, _isInPlace, isMainFrame) => {
+      if (isMainFrame) {
+        applyNavigationPolicy(event, url, this.allowedPolicyBypassUrl);
+      } else {
+        debugNavigation("allow-subframe-redirect", url);
+      }
     });
 
     this.currentView = view;
@@ -125,10 +134,12 @@ export function getGmailBounds(bounds: Rectangle): Rectangle {
 
 function applyNavigationPolicy(event: Event, url: string, allowedPolicyBypassUrl: string | null): void {
   if (allowedPolicyBypassUrl && isAllowedStartUrl(url, allowedPolicyBypassUrl)) {
+    debugNavigation("allow-bypass", url);
     return;
   }
 
   const decision = classifyNavigationUrl(url);
+  debugNavigation(decision, url);
 
   if (decision === "internal") {
     return;
@@ -161,6 +172,16 @@ function getAllowedPolicyBypassUrl(startUrl: string): string | null {
   return process.env.GMAIL_CLIENT_E2E === "1" ? startUrl : null;
 }
 
+function getGoogleCompatibleUserAgent(defaultUserAgent: string): string {
+  const withoutElectron = defaultUserAgent.replace(/\sElectron\/\S+/u, "");
+
+  if (withoutElectron !== defaultUserAgent && withoutElectron.includes("Chrome/")) {
+    return withoutElectron;
+  }
+
+  return SAFARI_COMPATIBLE_USER_AGENT;
+}
+
 function getLiveWebContents(view: WebContentsView): WebContents | null {
   try {
     const webContents = view.webContents;
@@ -186,4 +207,10 @@ function ignoreDestroyedObjectError(action: () => void): void {
 
 function isDestroyedObjectError(error: unknown): boolean {
   return error instanceof Error && error.message.includes("Object has been destroyed");
+}
+
+function debugNavigation(decision: string, url: string): void {
+  if (process.env.GMAIL_CLIENT_DEBUG_NAV === "1") {
+    console.error(`[gmail-nav] ${decision} ${url}`);
+  }
 }

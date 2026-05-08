@@ -110,6 +110,13 @@ function parseProfileState(raw: string): ProfileState {
   const profiles = parsed.profiles.map((profile, index) => validateProfile(profile, index));
   const { lastActiveProfileId } = parsed;
 
+  if (lastActiveProfileId === undefined) {
+    return {
+      profiles,
+      lastActiveProfileId: null
+    };
+  }
+
   if (typeof lastActiveProfileId !== "string" && lastActiveProfileId !== null) {
     throw new Error("Invalid profile store: lastActiveProfileId must be a string or null");
   }

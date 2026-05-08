@@ -60,6 +60,13 @@ describe("FileProfileStore", () => {
     expect(() => store.getState()).toThrow("Invalid profile store: profiles must be an array");
   });
 
+  it("loads missing last active profile as null", () => {
+    const store = makeStore();
+    writeFileSync(store.filePath, JSON.stringify({ profiles: [] }), "utf8");
+
+    expect(store.getState()).toEqual({ profiles: [], lastActiveProfileId: null });
+  });
+
   it("renames a profile", () => {
     const store = makeStore();
     const profile = store.createProfile("Work", "2026-05-08T00:00:00.000Z");

@@ -1,0 +1,27 @@
+build/entitlements.mac.plist
+  h_31472534e8c051 13-16
+build/entitlements.mas.plist
+  h_31472534e8c051 15-18
+package-lock.json
+  h_31472534e8c051 34,527-529,534-535,537,541,544-570,4544-4546,4550-4551,4555-4556,4559,4741-4757,9497-9507
+package.json
+  h_31472534e8c051 8-9,43
+scripts/prepare-electron-webauthn.cjs
+  h_31472534e8c051 1-35
+src/main/main.ts
+  h_31472534e8c051 4,7
+src/main/webAuthn.ts
+  h_31472534e8c051 1-43
+tests/unit/webAuthn.test.ts
+  h_31472534e8c051 1-86
+---
+{
+  "schema_version": "zax-attestation/1.1.0",
+  "base_commit_sha": "bb3df828f6a6fb1cbaa999da6da176dd8244695b",
+  "prompts": {},
+  "humans": {
+    "h_31472534e8c051": {
+      "author": "gr8wooya@gmail.com"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+src/renderer/App.tsx
+  h_31472534e8c051 152-161,206
+src/renderer/components/SettingsPage.tsx
+  h_31472534e8c051 37,50,115,133,142,274-298
+src/renderer/styles.css
+  h_31472534e8c051 732-752
+tests/renderer/App.test.tsx
+  h_31472534e8c051 99-107,355-386
+---
+{
+  "schema_version": "zax-attestation/1.1.0",
+  "base_commit_sha": "581839ce49786e78ee7013d1b919df7c3eeca917",
+  "prompts": {},
+  "humans": {
+    "h_31472534e8c051": {
+      "author": "gr8wooya@gmail.com"
+    }
+  }
+}

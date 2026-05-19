@@ -1,5 +1,73 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { ActiveGoogleSurface, GmailProfile, ProfileState } from "../../src/shared/profile";
+
+const electronMock = vi.hoisted(() => ({
+  shellOpenExternal: vi.fn(),
+  views: [] as Array<{
+    options: unknown;
+    setBounds: ReturnType<typeof vi.fn>;
+    webContents: {
+      close: ReturnType<typeof vi.fn>;
+      executeJavaScript: ReturnType<typeof vi.fn>;
+      focus: ReturnType<typeof vi.fn>;
+      getURL: ReturnType<typeof vi.fn>;
+      getUserAgent: ReturnType<typeof vi.fn>;
+      isDestroyed: ReturnType<typeof vi.fn>;
+      loadURL: ReturnType<typeof vi.fn>;
+      on: ReturnType<typeof vi.fn>;
+      reload: ReturnType<typeof vi.fn>;
+      sendInputEvent: ReturnType<typeof vi.fn>;
+      setUserAgent: ReturnType<typeof vi.fn>;
+      setWindowOpenHandler: ReturnType<typeof vi.fn>;
+      url: string;
+    };
+  }>
+}));
+
+vi.mock("electron", () => {
+  class MockWebContents {
+    url = "";
+    destroyed = false;
+    close = vi.fn(() => {
+      this.destroyed = true;
+    });
+    executeJavaScript = vi.fn(async () => ({ status: "ready" }));
+    focus = vi.fn();
+    getURL = vi.fn(() => this.url);
+    getUserAgent = vi.fn(() => "Mozilla/5.0 Chrome/134.0.0.0 Electron/35.0.0");
+    isDestroyed = vi.fn(() => this.destroyed);
+    loadURL = vi.fn(async (url: string) => {
+      this.url = url;
+    });
+    on = vi.fn();
+    reload = vi.fn();
+    sendInputEvent = vi.fn();
+    setUserAgent = vi.fn();
+    setWindowOpenHandler = vi.fn();
+  }
+
+  class MockWebContentsView {
+    options: unknown;
+    setBounds = vi.fn();
+    webContents = new MockWebContents();
+
+    constructor(options: unknown) {
+      this.options = options;
+      electronMock.views.push(this);
+    }
+  }
+
+  return {
+    BrowserWindow: class MockBrowserWindow {},
+    WebContentsView: MockWebContentsView,
+    shell: {
+      openExternal: electronMock.shellOpenExternal
+    }
+  };
+});
+
 import {
+  GmailViewController,
   getGoogleAppStartUrl,
   getProfileSwitchAction,
   getGmailBounds,
@@ -11,6 +79,105 @@ import {
   parseGmailPageContext,
   parseGoogleAccountMetadata
 } from "../../src/main/gmailViewController";
+
+const CUSTOM_MAIL_URL = "https://mail.google.com/mail/u/0/#custom";
+const CALENDAR_URL = "https://calendar.google.com/calendar/u/0/r";
+
+beforeEach(() => {
+  electronMock.shellOpenExternal.mockReset();
+  electronMock.views.length = 0;
+});
+
+describe("GmailViewController", () => {
+  it("loads configured Mail start URL and Calendar start URL for new surfaces", async () => {
+    const { controller } = createController();
+
+    await controller.switchToSurface({ profileId: "work", appKind: "mail" });
+    await controller.switchToSurface({ profileId: "work", appKind: "calendar" });
+
+    expect(electronMock.views[0]?.webContents.loadURL).toHaveBeenCalledWith(CUSTOM_MAIL_URL);
+    expect(electronMock.views[1]?.webContents.loadURL).toHaveBeenCalledWith(CALENDAR_URL);
+  });
+
+  it("rejects switching to Calendar when the profile has Calendar disabled", async () => {
+    const { controller } = createController({
+      profiles: [createProfile({ id: "work", calendarEnabled: false })]
+    });
+
+    await expect(controller.switchToSurface({ profileId: "work", appKind: "calendar" })).rejects.toThrow(
+      "Calendar is not enabled for profile: work"
+    );
+    expect(electronMock.views).toHaveLength(0);
+  });
+
+  it("activates a cached surface without reloading it", async () => {
+    const { controller } = createController();
+
+    await controller.switchToSurface({ profileId: "work", appKind: "mail" });
+    const mailWebContents = electronMock.views[0]?.webContents;
+    await controller.switchToSurface({ profileId: "work", appKind: "calendar" });
+    await controller.switchToSurface({ profileId: "work", appKind: "mail" });
+
+    expect(electronMock.views).toHaveLength(2);
+    expect(mailWebContents?.loadURL).toHaveBeenCalledTimes(1);
+  });
+
+  it("closes Mail and Calendar cached views for a profile", async () => {
+    const { controller } = createController();
+
+    await controller.switchToSurface({ profileId: "work", appKind: "mail" });
+    await controller.switchToSurface({ profileId: "work", appKind: "calendar" });
+
+    controller.closeProfileView("work");
+
+    expect(electronMock.views[0]?.webContents.close).toHaveBeenCalledTimes(1);
+    expect(electronMock.views[1]?.webContents.close).toHaveBeenCalledTimes(1);
+  });
+
+  it("recovers Mail refresh to the configured start URL and Calendar refresh to Calendar", async () => {
+    const { controller } = createController();
+
+    await controller.switchToSurface({ profileId: "work", appKind: "mail" });
+    const mailWebContents = electronMock.views[0]?.webContents;
+    mailWebContents!.url = "about:blank";
+    controller.refreshCurrentView();
+
+    await controller.switchToSurface({ profileId: "work", appKind: "calendar" });
+    const calendarWebContents = electronMock.views[1]?.webContents;
+    calendarWebContents!.url = "about:blank";
+    controller.refreshCurrentView();
+
+    expect(mailWebContents?.loadURL).toHaveBeenLastCalledWith(CUSTOM_MAIL_URL);
+    expect(calendarWebContents?.loadURL).toHaveBeenLastCalledWith(CALENDAR_URL);
+  });
+
+  it("does not intercept Gmail shortcuts while Calendar is active", async () => {
+    const { controller } = createController();
+    const event = { preventDefault: vi.fn() };
+
+    await controller.switchToSurface({ profileId: "work", appKind: "calendar" });
+
+    expect(controller.handleShortcutInput(event as never, { type: "keyDown", key: "Backspace" } as never)).toBe(
+      false
+    );
+    expect(event.preventDefault).not.toHaveBeenCalled();
+    expect(electronMock.views[0]?.webContents.executeJavaScript).not.toHaveBeenCalled();
+  });
+
+  it("stores a defensive copy of the active surface", async () => {
+    const { controller } = createController();
+    const surface: ActiveGoogleSurface = { profileId: "work", appKind: "mail" };
+
+    await controller.switchToSurface(surface);
+    surface.appKind = "calendar";
+
+    const mailWebContents = electronMock.views[0]?.webContents;
+    mailWebContents!.url = "about:blank";
+    controller.refreshCurrentView();
+
+    expect(mailWebContents?.loadURL).toHaveBeenLastCalledWith(CUSTOM_MAIL_URL);
+  });
+});
 
 describe("getProfileSwitchAction", () => {
   it("uses independent cache keys for mail and calendar", () => {
@@ -179,3 +346,44 @@ describe("isIgnorableLoadError", () => {
     expect(isIgnorableLoadError(new Error("ERR_CERT_AUTHORITY_INVALID"))).toBe(false);
   });
 });
+
+function createController(options: { profiles?: GmailProfile[]; startUrl?: string } = {}): {
+  controller: GmailViewController;
+} {
+  const profiles = options.profiles ?? [createProfile({ id: "work", calendarEnabled: true })];
+  const store = {
+    getState: (): ProfileState => ({
+      profiles,
+      lastActiveProfileId: profiles[0]?.id ?? null,
+      lastActiveSurface: null
+    })
+  };
+  const window = {
+    contentView: {
+      addChildView: vi.fn(),
+      removeChildView: vi.fn()
+    },
+    getContentBounds: vi.fn(() => ({ x: 0, y: 0, width: 1280, height: 860 })),
+    isDestroyed: vi.fn(() => false),
+    off: vi.fn(),
+    on: vi.fn(),
+    once: vi.fn()
+  };
+
+  return {
+    controller: new GmailViewController(window as never, store as never, {
+      startUrl: options.startUrl ?? CUSTOM_MAIL_URL
+    })
+  };
+}
+
+function createProfile(options: { id: string; calendarEnabled: boolean }): GmailProfile {
+  return {
+    id: options.id,
+    displayName: options.id,
+    partition: `persist:gmail-profile-${options.id}`,
+    calendarEnabled: options.calendarEnabled,
+    createdAt: "2026-05-19T00:00:00.000Z",
+    updatedAt: "2026-05-19T00:00:00.000Z"
+  };
+}

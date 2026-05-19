@@ -133,18 +133,19 @@ export class GmailViewController {
   }
 
   async switchToSurface(surface: ActiveGoogleSurface): Promise<void> {
-    const profile = this.store.getState().profiles.find((candidate) => candidate.id === surface.profileId);
+    const activeSurface = copySurface(surface);
+    const profile = this.store.getState().profiles.find((candidate) => candidate.id === activeSurface.profileId);
 
     if (!profile) {
-      throw new Error(`Profile not found: ${surface.profileId}`);
+      throw new Error(`Profile not found: ${activeSurface.profileId}`);
     }
 
-    if (surface.appKind === "calendar" && !profile.calendarEnabled) {
-      throw new Error(`Calendar is not enabled for profile: ${surface.profileId}`);
+    if (activeSurface.appKind === "calendar" && !profile.calendarEnabled) {
+      throw new Error(`Calendar is not enabled for profile: ${activeSurface.profileId}`);
     }
 
     const token = ++this.switchToken;
-    const surfaceKey = getSurfaceCacheKey(surface);
+    const surfaceKey = getSurfaceCacheKey(activeSurface);
 
     if (this.currentSurface && getSurfaceCacheKey(this.currentSurface) === surfaceKey && this.currentView) {
       this.layout();
@@ -153,15 +154,15 @@ export class GmailViewController {
 
     this.detachCurrentView();
 
-    const switchAction = getProfileSwitchAction(new Set(this.surfaceViews.keys()), surface);
+    const switchAction = getProfileSwitchAction(new Set(this.surfaceViews.keys()), activeSurface);
     const view =
-      switchAction === "activate-cached" ? this.surfaceViews.get(surfaceKey) : this.createSurfaceView(surface);
+      switchAction === "activate-cached" ? this.surfaceViews.get(surfaceKey) : this.createSurfaceView(activeSurface);
 
     if (!view) {
       throw new Error(`Surface view not found: ${surfaceKey}`);
     }
 
-    this.currentSurface = surface;
+    this.currentSurface = copySurface(activeSurface);
     this.currentView = view;
     this.attachCurrentViewIfVisible();
 
@@ -170,7 +171,7 @@ export class GmailViewController {
     }
 
     try {
-      await view.webContents.loadURL(getGoogleAppStartUrl(surface.appKind));
+      await view.webContents.loadURL(this.getSurfaceStartUrl(activeSurface.appKind));
     } catch (error) {
       if (isIgnorableLoadError(error)) {
         return;
@@ -183,9 +184,10 @@ export class GmailViewController {
   }
 
   private createSurfaceView(surface: ActiveGoogleSurface): WebContentsView {
+    const viewSurface = copySurface(surface);
     const view = new WebContentsView({
       webPreferences: {
-        partition: getPartitionName(surface.profileId),
+        partition: getPartitionName(viewSurface.profileId),
         nodeIntegration: false,
         contextIsolation: true,
         sandbox: true
@@ -201,7 +203,7 @@ export class GmailViewController {
       if (disposition.action === "allow-popup") {
         return {
           action: "allow",
-          overrideBrowserWindowOptions: createGmailPopupWindowOptions(surface.profileId)
+          overrideBrowserWindowOptions: createGmailPopupWindowOptions(viewSurface.profileId)
         };
       }
 
@@ -219,7 +221,7 @@ export class GmailViewController {
     });
 
     view.webContents.on("did-create-window", (childWindow) => {
-      protectGmailPopupWindow(childWindow, surface.profileId, this.allowedPolicyBypassUrl);
+      protectGmailPopupWindow(childWindow, viewSurface.profileId, this.allowedPolicyBypassUrl);
     });
 
     view.webContents.on("will-navigate", (event, url) => {
@@ -227,23 +229,25 @@ export class GmailViewController {
     });
 
     view.webContents.on("before-input-event", (event, input) => {
-      this.handleShortcutInput(event, input);
+      if (viewSurface.appKind === "mail") {
+        this.handleShortcutInput(event, input);
+      }
     });
 
     view.webContents.on("did-navigate", (_event, url) => {
       debugNavigation("did-navigate", url);
-      this.restorePrimaryGoogleAppViewIfNeeded(url, surface, view);
-      this.scheduleProfileMetadataCapture(surface);
+      this.restorePrimaryGoogleAppViewIfNeeded(url, viewSurface, view);
+      this.scheduleProfileMetadataCapture(viewSurface);
     });
 
     view.webContents.on("did-navigate-in-page", (_event, url) => {
       debugNavigation("did-navigate-in-page", url);
-      this.restorePrimaryGoogleAppViewIfNeeded(url, surface, view);
-      this.scheduleProfileMetadataCapture(surface);
+      this.restorePrimaryGoogleAppViewIfNeeded(url, viewSurface, view);
+      this.scheduleProfileMetadataCapture(viewSurface);
     });
 
     view.webContents.on("did-finish-load", () => {
-      this.scheduleProfileMetadataCapture(surface);
+      this.scheduleProfileMetadataCapture(viewSurface);
     });
 
     view.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedUrl, isMainFrame) => {
@@ -260,7 +264,7 @@ export class GmailViewController {
       }
     });
 
-    this.surfaceViews.set(getSurfaceCacheKey(surface), view);
+    this.surfaceViews.set(getSurfaceCacheKey(viewSurface), view);
     return view;
   }
 
@@ -301,7 +305,7 @@ export class GmailViewController {
     }
 
     const recoveryUrl = this.currentSurface
-      ? getPrimaryGoogleAppRecoveryUrl(webContents.getURL(), this.currentSurface.appKind)
+      ? this.getSurfaceRecoveryUrl(webContents.getURL(), this.currentSurface.appKind)
       : null;
     if (recoveryUrl) {
       void webContents.loadURL(recoveryUrl).catch((error: unknown) => {
@@ -327,7 +331,7 @@ export class GmailViewController {
   }
 
   handleShortcutInput(event: Event, input: Input): boolean {
-    if (this.forwardingEditingInput) {
+    if (this.forwardingEditingInput || this.currentSurface?.appKind !== "mail") {
       return false;
     }
 
@@ -345,6 +349,10 @@ export class GmailViewController {
   }
 
   triggerDeleteShortcut(originalKey = "Backspace"): void {
+    if (this.currentSurface?.appKind !== "mail") {
+      return;
+    }
+
     void this.triggerCurrentGmailAction("delete", originalKey).catch((error: unknown) => {
       console.error(error);
     });
@@ -471,6 +479,10 @@ export class GmailViewController {
   }
 
   private async triggerCurrentGmailAction(action: OutlookShortcutAction, originalKey?: string): Promise<void> {
+    if (this.currentSurface?.appKind !== "mail") {
+      return;
+    }
+
     const webContents = this.currentView ? getLiveWebContents(this.currentView) : null;
 
     if (!webContents) {
@@ -502,7 +514,7 @@ export class GmailViewController {
     surface: ActiveGoogleSurface,
     view: WebContentsView
   ): void {
-    const recoveryUrl = getPrimaryGoogleAppRecoveryUrl(url, surface.appKind);
+    const recoveryUrl = this.getSurfaceRecoveryUrl(url, surface.appKind);
     const webContents = getLiveWebContents(view);
 
     if (!recoveryUrl || !webContents) {
@@ -515,6 +527,16 @@ export class GmailViewController {
         console.error(error);
       }
     });
+  }
+
+  private getSurfaceStartUrl(appKind: GoogleAppKind): string {
+    return appKind === "calendar" ? getGoogleAppStartUrl("calendar") : this.startUrl;
+  }
+
+  private getSurfaceRecoveryUrl(currentUrl: string, appKind: GoogleAppKind): string | null {
+    return appKind === "calendar"
+      ? getPrimaryGoogleAppRecoveryUrl(currentUrl, "calendar")
+      : getPrimaryGmailRecoveryUrl(currentUrl, this.startUrl);
   }
 }
 
@@ -529,6 +551,13 @@ export function getGmailBounds(bounds: Rectangle, topInset = APP_BAR_HEIGHT, rig
 
 export function getSurfaceCacheKey(surface: ActiveGoogleSurface): `${string}:${GoogleAppKind}` {
   return `${surface.profileId}:${surface.appKind}`;
+}
+
+function copySurface(surface: ActiveGoogleSurface): ActiveGoogleSurface {
+  return {
+    profileId: surface.profileId,
+    appKind: surface.appKind
+  };
 }
 
 export function getProfileSwitchAction(

@@ -729,6 +729,27 @@ button:not(:disabled) {
   grid-column: 1 / -1;
 }
 
+.account-app-settings {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  grid-column: 1 / -1;
+}
+
+.account-app-title {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.account-app-description {
+  display: block;
+  margin-top: 3px;
+  color: var(--color-muted-foreground);
+  font-size: 12px;
+}
+
 .theme-options {
   display: flex;
   flex-wrap: wrap;

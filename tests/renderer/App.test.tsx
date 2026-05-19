@@ -96,6 +96,15 @@ function installApi(state: TestProfileState) {
       return Promise.resolve();
     }),
     refreshCurrentSurface: vi.fn().mockResolvedValue(undefined),
+    setProfileCalendarEnabled: vi.fn().mockImplementation((profileId: string, enabled: boolean) => {
+      currentState = normalizeTestProfileState({
+        ...currentState,
+        profiles: currentState.profiles.map((profile) =>
+          profile.id === profileId ? { ...profile, calendarEnabled: enabled } : profile
+        )
+      });
+      return Promise.resolve(currentState.profiles.find((profile) => profile.id === profileId));
+    }),
     setChromeHeight: vi.fn().mockResolvedValue(undefined),
     setGmailViewVisible: vi.fn().mockResolvedValue(undefined),
     setGmailRightInset: vi.fn().mockResolvedValue(undefined),
@@ -341,6 +350,38 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "밝게" }));
 
     expect(document.documentElement).toHaveAttribute("data-theme", "light");
+  });
+
+  it("enables calendar from profile settings", async () => {
+    const api = installApi({
+      profiles: [makeProfile({ id: "work", displayName: "Work", calendarEnabled: false })],
+      lastActiveProfileId: "work",
+      lastActiveSurface: { profileId: "work", appKind: "mail" }
+    });
+
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: "Settings" }));
+    fireEvent.click(await screen.findByRole("switch", { name: "Enable Calendar for Work" }));
+
+    await waitFor(() => {
+      expect(api.setProfileCalendarEnabled).toHaveBeenCalledWith("work", true);
+    });
+  });
+
+  it("switches back to mail when disabling the active calendar profile", async () => {
+    const api = installApi({
+      profiles: [makeProfile({ id: "work", displayName: "Work", calendarEnabled: true })],
+      lastActiveProfileId: "work",
+      lastActiveSurface: { profileId: "work", appKind: "calendar" }
+    });
+
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: "Settings" }));
+    fireEvent.click(await screen.findByRole("switch", { name: "Enable Calendar for Work" }));
+
+    await waitFor(() => {
+      expect(api.setProfileCalendarEnabled).toHaveBeenCalledWith("work", false);
+    });
   });
 
   it("opens and closes the agent chat panel while reserving Gmail width", async () => {

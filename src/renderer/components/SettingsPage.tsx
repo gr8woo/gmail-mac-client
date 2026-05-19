@@ -34,6 +34,7 @@ interface SettingsPageProps {
   activeProfileId: string | null;
   onCreateProfile(displayName: string): Promise<void>;
   onRenameProfile(profileId: string, displayName: string): Promise<void>;
+  onSetProfileCalendarEnabled(profileId: string, enabled: boolean): Promise<void>;
   onDeleteProfile(profileId: string): Promise<void>;
   onBackToMail(): void;
   status: string | null;
@@ -46,6 +47,7 @@ export function SettingsPage({
   activeProfileId,
   onCreateProfile,
   onRenameProfile,
+  onSetProfileCalendarEnabled,
   onDeleteProfile,
   onBackToMail,
   status
@@ -110,6 +112,7 @@ export function SettingsPage({
             activeProfileId={activeProfileId}
             onCreateProfile={onCreateProfile}
             onRenameProfile={onRenameProfile}
+            onSetProfileCalendarEnabled={onSetProfileCalendarEnabled}
             onDeleteProfile={onDeleteProfile}
           />
         ) : section === "theme" ? (
@@ -127,6 +130,7 @@ interface AccountSettingsProps {
   activeProfileId: string | null;
   onCreateProfile(displayName: string): Promise<void>;
   onRenameProfile(profileId: string, displayName: string): Promise<void>;
+  onSetProfileCalendarEnabled(profileId: string, enabled: boolean): Promise<void>;
   onDeleteProfile(profileId: string): Promise<void>;
 }
 
@@ -135,6 +139,7 @@ function AccountSettings({
   activeProfileId,
   onCreateProfile,
   onRenameProfile,
+  onSetProfileCalendarEnabled,
   onDeleteProfile
 }: AccountSettingsProps) {
   const [selectedProfileId, setSelectedProfileId] = useState(activeProfileId ?? profiles[0]?.id ?? "");
@@ -265,6 +270,31 @@ function AccountSettings({
                 <Input value={selectedProfile.email ?? ""} readOnly />
               </label>
             </div>
+            <Separator />
+            <div className="account-app-settings">
+              <div>
+                <div className="account-app-title">Gmail</div>
+                <div className="account-app-description">Always enabled for this profile.</div>
+              </div>
+              <Badge>On</Badge>
+            </div>
+            <label className="account-app-settings">
+              <span>
+                <span className="account-app-title">Calendar</span>
+                <span className="account-app-description">
+                  Show Google Calendar as a top-bar surface for this profile.
+                </span>
+              </span>
+              <input
+                type="checkbox"
+                role="switch"
+                aria-label={`Enable Calendar for ${selectedProfile.displayName}`}
+                checked={selectedProfile.calendarEnabled}
+                onChange={(event) =>
+                  void onSetProfileCalendarEnabled(selectedProfile.id, event.currentTarget.checked)
+                }
+              />
+            </label>
             <Separator />
             <Button
               type="button"

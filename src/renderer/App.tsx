@@ -149,6 +149,16 @@ export function App() {
     await refreshState();
   }
 
+  async function setProfileCalendarEnabled(profileId: string, enabled: boolean) {
+    try {
+      await gmailClient.setProfileCalendarEnabled(profileId, enabled);
+      await refreshState();
+    } catch (caught) {
+      setStatus(caught instanceof Error ? caught.message : "Unable to update Calendar setting");
+      await refreshState({ clearStatus: false }).catch(() => undefined);
+    }
+  }
+
   async function deleteProfile(profileId: string) {
     const confirmed = window.confirm("Delete this profile and its local Gmail session data?");
 
@@ -193,6 +203,7 @@ export function App() {
         activeProfileId={state.lastActiveProfileId}
         onCreateProfile={createProfile}
         onRenameProfile={renameProfile}
+        onSetProfileCalendarEnabled={setProfileCalendarEnabled}
         onDeleteProfile={deleteProfile}
         onBackToMail={() => setPage("mail")}
         status={status}

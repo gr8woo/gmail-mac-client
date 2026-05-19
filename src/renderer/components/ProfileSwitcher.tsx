@@ -14,7 +14,7 @@ export function ProfileSwitcher({ profiles, activeSurface, onSwitchSurface }: Pr
   ]);
 
   return (
-    <nav className="profile-switcher" aria-label="Gmail profiles">
+    <nav className="profile-switcher" aria-label="Google profiles">
       {surfaces.map(({ profile, appKind }) => {
         const label = getProfileLabel(profile);
         const isActive = profile.id === activeSurface?.profileId && appKind === activeSurface.appKind;

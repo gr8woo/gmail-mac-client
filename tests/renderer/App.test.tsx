@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "../../src/renderer/App";
-import type { GmailProfile, ProfileState } from "../../src/shared/profile";
+import type { ActiveGoogleSurface, GmailProfile, ProfileState } from "../../src/shared/profile";
 import type { AgentProviderStatus, ClaudeCodeStatus } from "../../src/shared/agent";
 
 const workProfile: GmailProfile = {
@@ -87,9 +87,14 @@ function installApi(state: TestProfileState) {
     }),
     renameProfile: vi.fn().mockResolvedValue(workProfile),
     deleteProfile: vi.fn().mockResolvedValue(undefined),
-    switchProfile: vi.fn().mockResolvedValue(undefined),
-    switchSurface: vi.fn().mockResolvedValue(undefined),
-    refreshGmailView: vi.fn().mockResolvedValue(undefined),
+    switchSurface: vi.fn().mockImplementation((surface: ActiveGoogleSurface) => {
+      currentState = normalizeTestProfileState({
+        ...currentState,
+        lastActiveProfileId: surface.profileId,
+        lastActiveSurface: surface
+      });
+      return Promise.resolve();
+    }),
     refreshCurrentSurface: vi.fn().mockResolvedValue(undefined),
     setChromeHeight: vi.fn().mockResolvedValue(undefined),
     setGmailViewVisible: vi.fn().mockResolvedValue(undefined),
@@ -195,7 +200,7 @@ describe("App", () => {
     expect(screen.queryByRole("button", { name: "Switch to Personal Calendar" })).not.toBeInTheDocument();
   });
 
-  it("switches to the selected calendar surface", async () => {
+  it("switches to the selected calendar surface and marks it active", async () => {
     const api = installApi({
       profiles: [
         makeProfile({ id: "work", displayName: "Work", partition: "persist:gmail-profile-work", calendarEnabled: true })
@@ -205,14 +210,22 @@ describe("App", () => {
     });
 
     render(<App />);
-    fireEvent.click(await screen.findByRole("button", { name: "Switch to Work Calendar" }));
+    const gmailButton = await screen.findByRole("button", { name: "Switch to Work Gmail" });
+    const calendarButton = screen.getByRole("button", { name: "Switch to Work Calendar" });
+
+    expect(gmailButton).toHaveAttribute("aria-current", "page");
+    expect(calendarButton).not.toHaveAttribute("aria-current");
+
+    fireEvent.click(calendarButton);
 
     await waitFor(() => {
       expect(api.switchSurface).toHaveBeenCalledWith({ profileId: "work", appKind: "calendar" });
     });
+    await waitFor(() => expect(calendarButton).toHaveAttribute("aria-current", "page"));
+    expect(gmailButton).not.toHaveAttribute("aria-current");
   });
 
-  it("refreshes the current Gmail view from the app bar", async () => {
+  it("refreshes the current view from the app bar", async () => {
     const api = installApi({
       lastActiveProfileId: "profile_1",
       profiles: [workProfile]
@@ -220,7 +233,7 @@ describe("App", () => {
 
     render(<App />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Refresh Gmail" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Refresh current view" }));
 
     await waitFor(() => expect(api.refreshCurrentSurface).toHaveBeenCalled());
   });

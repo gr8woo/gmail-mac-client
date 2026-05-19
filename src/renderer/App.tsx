@@ -165,11 +165,11 @@ export function App() {
     }
   }
 
-  async function refreshGmailView() {
+  async function refreshCurrentView() {
     try {
       await gmailClient.refreshCurrentSurface();
     } catch (caught) {
-      setStatus(caught instanceof Error ? caught.message : "Unable to refresh Gmail");
+      setStatus(caught instanceof Error ? caught.message : "Unable to refresh current view");
     }
   }
 
@@ -212,11 +212,11 @@ export function App() {
         <button
           type="button"
           className="settings-button"
-          onClick={() => void refreshGmailView()}
-          title="Refresh Gmail"
+          onClick={() => void refreshCurrentView()}
+          title="Refresh current view"
         >
           <RefreshCw className="settings-icon" aria-hidden="true" />
-          <span className="visually-hidden">Refresh Gmail</span>
+          <span className="visually-hidden">Refresh current view</span>
         </button>
         <button
           type="button"

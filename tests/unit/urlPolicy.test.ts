@@ -6,6 +6,11 @@ describe("classifyNavigationUrl", () => {
     expect(classifyNavigationUrl("https://mail.google.com/mail/u/0/#inbox")).toBe("internal");
   });
 
+  it("keeps Google Calendar URLs inside the app", () => {
+    expect(classifyNavigationUrl("https://calendar.google.com/calendar/u/0/r")).toBe("internal");
+    expect(classifyNavigationUrl("https://calendar.google.com/calendar/u/0/r/eventedit")).toBe("internal");
+  });
+
   it("keeps Google auth URLs in the app", () => {
     expect(classifyNavigationUrl("https://accounts.google.com/signin/v2/identifier")).toBe("internal");
   });

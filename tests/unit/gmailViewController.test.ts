@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  getGoogleAppStartUrl,
   getProfileSwitchAction,
   getGmailBounds,
+  getPrimaryGoogleAppRecoveryUrl,
   getPrimaryGmailRecoveryUrl,
   getWindowOpenDisposition,
   isIgnorableLoadError,
@@ -87,6 +89,17 @@ describe("getGmailBounds", () => {
 });
 
 describe("getPrimaryGmailRecoveryUrl", () => {
+  it("returns start URLs for mail and calendar", () => {
+    expect(getGoogleAppStartUrl("mail")).toContain("mail.google.com");
+    expect(getGoogleAppStartUrl("calendar")).toBe("https://calendar.google.com/calendar/u/0/r");
+  });
+
+  it("recovers Calendar popup bootstrap pages to Calendar start URL", () => {
+    expect(getPrimaryGoogleAppRecoveryUrl("about:blank", "calendar")).toBe(
+      "https://calendar.google.com/calendar/u/0/r"
+    );
+  });
+
   it("recovers the primary Gmail view when it has been replaced by a blank popup page", () => {
     expect(getPrimaryGmailRecoveryUrl("about:blank", "https://mail.google.com/mail/u/0/#inbox")).toBe(
       "https://mail.google.com/mail/u/0/#inbox"

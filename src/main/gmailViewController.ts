@@ -3,6 +3,7 @@ import type { BrowserWindowConstructorOptions } from "electron";
 import type { Event, Input, Rectangle, WebContents } from "electron";
 import type { GmailPageContext } from "../shared/agent";
 import { getPartitionName } from "../shared/profile";
+import type { GoogleAppKind } from "../shared/profile";
 import { classifyNavigationUrl } from "../shared/urlPolicy";
 import type { FileProfileStore } from "./profileStore";
 import {
@@ -16,6 +17,7 @@ import {
 export const APP_BAR_HEIGHT = 44;
 const DEFAULT_GMAIL_URL =
   "https://accounts.google.com/v3/signin/identifier?service=mail&continue=https%3A%2F%2Fmail.google.com%2Fmail%2Fu%2F0%2F&followup=https%3A%2F%2Fmail.google.com%2Fmail%2Fu%2F0%2F&flowName=GlifWebSignIn&flowEntry=ServiceLogin";
+const DEFAULT_CALENDAR_URL = "https://calendar.google.com/calendar/u/0/r";
 const SAFARI_COMPATIBLE_USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36";
 const GOOGLE_ACCOUNT_METADATA_SCRIPT = `
@@ -527,6 +529,24 @@ export function getPrimaryGmailRecoveryUrl(currentUrl: string, startUrl: string)
   }
 
   if (isPopupBootstrapUrl(currentUrl) || isGmailStandalonePopupUrl(currentUrl)) {
+    return startUrl;
+  }
+
+  return null;
+}
+
+export function getGoogleAppStartUrl(appKind: GoogleAppKind): string {
+  return appKind === "calendar" ? DEFAULT_CALENDAR_URL : getConfiguredStartUrl();
+}
+
+export function getPrimaryGoogleAppRecoveryUrl(currentUrl: string, appKind: GoogleAppKind): string | null {
+  const startUrl = getGoogleAppStartUrl(appKind);
+
+  if (urlsMatch(currentUrl, startUrl)) {
+    return null;
+  }
+
+  if (isPopupBootstrapUrl(currentUrl) || (appKind === "mail" && isGmailStandalonePopupUrl(currentUrl))) {
     return startUrl;
   }
 

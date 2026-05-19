@@ -1,0 +1,105 @@
+.gitignore
+  h_31472534e8c051 6-7
+build/icon.svg
+  h_31472534e8c051 1-59
+docs/superpowers/plans/2026-05-08-ai-provider-selection.md
+  h_31472534e8c051 1-69
+docs/superpowers/plans/2026-05-08-claude-code-agent-panel.md
+  h_31472534e8c051 1-83
+docs/superpowers/plans/2026-05-08-profile-settings.md
+  h_31472534e8c051 1-64
+docs/superpowers/specs/2026-05-19-calendar-surface-design.md
+  h_31472534e8c051 1-209
+electron-builder.yml
+  h_31472534e8c051 7,11
+package-lock.json
+  h_31472534e8c051 11-12,14-16,18-22,1624-1656,2021-2277,2459-2467,2478-2486,2504-2512,2570-2575,2595-2600,3174-3183,3594-3603,3651-3690,3734-3745,3838-3846,3890-3902,4204-4216,4360-4372,4799-4811,4970-4979,5007-5012,5592-5631,5678-5687,5845-5850,5861-5884,5898-5907,5918-5927,5945-5956,6039-6047,6249-6497,6562-6572,6598-6606,6675-7489,7492-7505,7508,7511-7524,7527-7529,7532-7545,7547-7551,7554-7585,8122-8146,8415-8424,8498-8524,8620-8685,9154-9163,9250-9263,9324-9341,9378-9406,9656-9675,9690,9728-9746,9773-9840,9921-9948,10467-10476
+package.json
+  h_31472534e8c051 16-17,19-21,23-27
+src/main/agentProviderRegistry.ts
+  h_31472534e8c051 1-308
+src/main/appIcon.ts
+  h_31472534e8c051 1-21
+src/main/claudeCodeBridge.ts
+  h_31472534e8c051 1-215
+src/main/createMainWindow.ts
+  h_31472534e8c051 26-37
+src/main/gmailViewController.ts
+  h_31472534e8c051 2-4,8-16,21-72,74,79-93,98-100,103-107,117-122,154,189-195,209-212,217-220,223-224,229-234,256-287,291-336,354,357-374,378,381-382,416-490,493,496-498,507-510,524-723,744-794
+src/main/ipc.ts
+  h_31472534e8c051 6-9,18-27,34-38,44-45,55-67,133-188,217-240
+src/main/main.ts
+  h_31472534e8c051 2,19
+src/main/outlookShortcuts.ts
+  h_31472534e8c051 1-447
+src/main/profileStore.ts
+  h_31472534e8c051 4,26-30,68-97,178,185-194,210-233
+src/preload/preload.ts
+  h_31472534e8c051 2,11-19,27-42
+src/renderer/App.tsx
+  h_31472534e8c051 2,4-5,7-8,11-17,21-34,49-67,70-123,164-171,185-198,202-206,208-236,238-249,253-264
+src/renderer/api.ts
+  h_31472534e8c051 2,12-20,30-40
+src/renderer/components/AgentChatPanel.tsx
+  h_31472534e8c051 1-200
+src/renderer/components/ProfileManager.tsx
+  h_31472534e8c051 2,23,29-33,62,66,68,72,89,91
+src/renderer/components/ProfileSwitcher.tsx
+  h_31472534e8c051 1-45
+src/renderer/components/SettingsPage.tsx
+  h_31472534e8c051 1-453
+src/renderer/components/StatusBar.tsx
+  h_31472534e8c051 11-12,16-29
+src/renderer/components/ui/avatar.tsx
+  h_31472534e8c051 1-19
+src/renderer/components/ui/badge.tsx
+  h_31472534e8c051 1-11
+src/renderer/components/ui/button.tsx
+  h_31472534e8c051 1-42
+src/renderer/components/ui/card.tsx
+  h_31472534e8c051 1-18
+src/renderer/components/ui/input.tsx
+  h_31472534e8c051 1-15
+src/renderer/components/ui/separator.tsx
+  h_31472534e8c051 1-6
+src/renderer/lib/utils.ts
+  h_31472534e8c051 1-7
+src/renderer/styles.css
+  h_31472534e8c051 1-22,24-41,46-108,124-127,131,138,152,157,164,167,170-171,174,176,179-180,189-190,194,199-201,204-205,208-422,424-426,429-461,464-489,492-555,557-564,567-583,585-637,641-650,653-792,796,799,801-810,814
+src/shared/agent.ts
+  h_31472534e8c051 1-31
+src/shared/profile.ts
+  h_31472534e8c051 1-2,7-8
+tests/e2e/electron-smoke.spec.ts
+  h_31472534e8c051 7,33-37
+tests/renderer/App.test.tsx
+  h_31472534e8c051 5,11-12,21,28-56,66-84,98-99,121,124,129-132,136,144,149-191,200,208,211-216,221,223-224,236,243-426,436,451,456-474
+tests/renderer/StatusBar.test.tsx
+  h_31472534e8c051 1-16
+tests/unit/agentProviderRegistry.test.ts
+  h_31472534e8c051 1-100
+tests/unit/appIconAssets.test.ts
+  h_31472534e8c051 1-17
+tests/unit/claudeCodeBridge.test.ts
+  h_31472534e8c051 1-63
+tests/unit/gmailViewController.test.ts
+  h_31472534e8c051 4-5,7-9,30-45,60-143
+tests/unit/outlookShortcuts.test.ts
+  h_31472534e8c051 1-209
+tests/unit/profile.test.ts
+  h_31472534e8c051 2,28-31
+tests/unit/profileStore.test.ts
+  h_31472534e8c051 97-160
+vite.config.ts
+  h_31472534e8c051 2,7
+---
+{
+  "schema_version": "zax-attestation/1.1.0",
+  "base_commit_sha": "d6e6408de1f67aa650847fe05160eabee6447949",
+  "prompts": {},
+  "humans": {
+    "h_31472534e8c051": {
+      "author": "gr8wooya@gmail.com"
+    }
+  }
+}

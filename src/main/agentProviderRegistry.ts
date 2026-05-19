@@ -250,7 +250,7 @@ async function openLoginTerminal(
   loginCommand: string,
   environment: NodeJS.ProcessEnv = {}
 ): Promise<void> {
-  const scriptDir = join(tmpdir(), "gmail-mac-client-login");
+  const scriptDir = join(tmpdir(), "simple-gmail-client-login");
   const scriptPath = join(scriptDir, `${providerName.replace(/\W+/g, "-").toLowerCase()}-${randomUUID()}.command`);
   const environmentLines = Object.entries(environment).map(
     ([key, value]) => `export ${key}=${shellQuote(String(value))}`
@@ -262,7 +262,7 @@ async function openLoginTerminal(
     `echo '${loginCommand}를 실행합니다.'`,
     loginCommand,
     "echo ''",
-    "echo '로그인이 끝났으면 Gmail Mac Client 설정에서 상태 새로고침을 눌러주세요.'",
+    "echo '로그인이 끝났으면 Simple Gmail Client 설정에서 상태 새로고침을 눌러주세요.'",
     "read -k 1 '?아무 키나 누르면 이 창을 닫습니다.'"
   ].join("\n");
 

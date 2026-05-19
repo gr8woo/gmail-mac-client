@@ -14,7 +14,7 @@ export async function createMainWindow(): Promise<BrowserWindow> {
     height: 860,
     minWidth: 900,
     minHeight: 640,
-    title: "Gmail Mac Client",
+    title: "Simple Gmail Client",
     webPreferences: {
       preload: join(__dirname, "../preload/preload.js"),
       contextIsolation: true,

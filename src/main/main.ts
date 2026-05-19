@@ -2,7 +2,7 @@ import { app, BrowserWindow } from "electron";
 import { applyDockIcon } from "./appIcon";
 import { createMainWindow } from "./createMainWindow";
 
-app.setName("Gmail Mac Client");
+app.setName("Simple Gmail Client");
 
 async function ensureWindow(): Promise<BrowserWindow> {
   const existing = BrowserWindow.getAllWindows()[0];

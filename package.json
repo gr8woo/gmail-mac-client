@@ -1,7 +1,8 @@
 {
-  "name": "gmail-mac-client",
+  "name": "simple-gmail-client",
   "version": "0.1.0",
-  "description": "A dedicated Gmail Mac client with isolated local profiles.",
+  "description": "A simple Gmail and Calendar desktop client with isolated local profiles.",
+  "author": "Glen Lee",
   "main": "dist/main/main.js",
   "scripts": {
     "dev": "concurrently -k -n vite,main,electron \"vite --host 127.0.0.1\" \"tsc -p tsconfig.main.json --watch --preserveWatchOutput\" \"wait-on tcp:5173 dist/main/main.js && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .\"",
@@ -10,7 +11,9 @@
     "test:watch": "vitest",
     "test:e2e": "npm run build && playwright test",
     "typecheck": "tsc --noEmit -p tsconfig.renderer.json && tsc --noEmit -p tsconfig.main.json",
-    "dist:mac": "npm run build && electron-builder --mac dir"
+    "dist:mac": "npm run build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac dir",
+    "dist:mas": "npm run build && electron-builder --mac mas",
+    "dist:mas:dev": "npm run build && electron-builder --mac mas-dev"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",

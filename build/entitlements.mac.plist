@@ -10,5 +10,9 @@
   <true/>
   <key>com.apple.security.network.client</key>
   <true/>
+  <key>keychain-access-groups</key>
+  <array>
+    <string>7AX2JZT3L8.com.gr8woo.simplegmailclient.webauthn</string>
+  </array>
 </dict>
 </plist>

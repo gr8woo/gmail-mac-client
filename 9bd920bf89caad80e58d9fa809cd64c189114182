@@ -1,0 +1,15 @@
+src/main/profileStore.ts
+  h_31472534e8c051 162-166
+tests/unit/profileStore.test.ts
+  h_31472534e8c051 155-178
+---
+{
+  "schema_version": "zax-attestation/1.1.0",
+  "base_commit_sha": "9bd920bf89caad80e58d9fa809cd64c189114182",
+  "prompts": {},
+  "humans": {
+    "h_31472534e8c051": {
+      "author": "gr8wooya@gmail.com"
+    }
+  }
+}

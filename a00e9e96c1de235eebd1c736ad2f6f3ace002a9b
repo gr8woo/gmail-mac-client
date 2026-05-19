@@ -1,0 +1,17 @@
+src/main/ipc.ts
+  h_31472534e8c051 6,20-21,26,36,39,139-170,191-195,276-291
+src/preload/preload.ts
+  h_31472534e8c051 3,11-12,17,31-33,38
+src/renderer/api.ts
+  h_31472534e8c051 1,12-13,18,34-36,41
+---
+{
+  "schema_version": "zax-attestation/1.1.0",
+  "base_commit_sha": "a00e9e96c1de235eebd1c736ad2f6f3ace002a9b",
+  "prompts": {},
+  "humans": {
+    "h_31472534e8c051": {
+      "author": "gr8wooya@gmail.com"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+src/renderer/App.tsx
+  h_31472534e8c051 10,129-134,139,142,170,208-209
+src/renderer/components/ProfileSwitcher.tsx
+  h_31472534e8c051 1-2,6-7,10-15,18,20-25,29,32,34-35,37-40
+src/renderer/styles.css
+  h_31472534e8c051 24,210,216,234,238-262
+tests/renderer/App.test.tsx
+  h_31472534e8c051 28-39,91,93,155-156,170-173,175-212,225,498,502,532,539
+---
+{
+  "schema_version": "zax-attestation/1.1.0",
+  "base_commit_sha": "a56817b2208f8cb83e049564e8b544db6ce8a429",
+  "prompts": {},
+  "humans": {
+    "h_31472534e8c051": {
+      "author": "gr8wooya@gmail.com"
+    }
+  }
+}

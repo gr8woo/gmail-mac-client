@@ -1,11 +1,19 @@
 export const MAX_PROFILES = 5;
 
+export type GoogleAppKind = "mail" | "calendar";
+
+export interface ActiveGoogleSurface {
+  profileId: string;
+  appKind: GoogleAppKind;
+}
+
 export interface GmailProfile {
   id: string;
   displayName: string;
   partition: string;
   email?: string;
   avatarUrl?: string;
+  calendarEnabled: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -13,6 +21,7 @@ export interface GmailProfile {
 export interface ProfileState {
   profiles: GmailProfile[];
   lastActiveProfileId: string | null;
+  lastActiveSurface: ActiveGoogleSurface | null;
 }
 
 export function normalizeProfileName(name: string): string {
@@ -36,7 +45,16 @@ export function createProfile(displayName: string, id: string, now: string): Gma
     id,
     displayName: normalizedName,
     partition: getPartitionName(id),
+    calendarEnabled: false,
     createdAt: now,
     updatedAt: now
   };
+}
+
+export function getSurfaceKey(surface: ActiveGoogleSurface): `${string}:${GoogleAppKind}` {
+  return `${surface.profileId}:${surface.appKind}`;
+}
+
+export function getGoogleAppLabel(appKind: GoogleAppKind): string {
+  return appKind === "calendar" ? "Calendar" : "Gmail";
 }

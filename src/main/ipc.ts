@@ -15,6 +15,7 @@ const profileIpcChannels = [
   "profiles:getState",
   "profiles:create",
   "profiles:rename",
+  "profiles:updateEmail",
   "profiles:delete",
   "profiles:switch",
   "profiles:setCalendarEnabled",
@@ -95,6 +96,13 @@ export function registerProfileIpc(
       requireString(profileId, "profileId"),
       requireString(displayName, "displayName")
     );
+  });
+
+  ipcMain.handle("profiles:updateEmail", (event, profileId: unknown, email: unknown) => {
+    assertTrustedSender(event);
+    return getRegistration().store.updateProfileMetadata(requireString(profileId, "profileId"), {
+      email: requireString(email, "email")
+    });
   });
 
   ipcMain.handle("profiles:delete", async (event, profileId: unknown) => {

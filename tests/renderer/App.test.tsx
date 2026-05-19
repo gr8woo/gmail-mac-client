@@ -86,6 +86,13 @@ function installApi(state: TestProfileState) {
       return Promise.resolve(profile);
     }),
     renameProfile: vi.fn().mockResolvedValue(workProfile),
+    updateProfileEmail: vi.fn().mockImplementation((profileId: string, email: string) => {
+      currentState = normalizeTestProfileState({
+        ...currentState,
+        profiles: currentState.profiles.map((profile) => (profile.id === profileId ? { ...profile, email } : profile))
+      });
+      return Promise.resolve(currentState.profiles.find((profile) => profile.id === profileId));
+    }),
     deleteProfile: vi.fn().mockResolvedValue(undefined),
     switchSurface: vi.fn().mockImplementation((surface: ActiveGoogleSurface) => {
       currentState = normalizeTestProfileState({
@@ -291,6 +298,23 @@ describe("App", () => {
     fireEvent.blur(screen.getByLabelText("Rename Work"));
 
     expect(api.renameProfile).not.toHaveBeenCalled();
+  });
+
+  it("updates a profile email from settings", async () => {
+    const api = installApi({
+      lastActiveProfileId: "profile_2",
+      profiles: [personalProfile]
+    });
+
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Settings" }));
+    fireEvent.change(screen.getByLabelText("Email for Personal"), { target: { value: "new@example.com" } });
+    fireEvent.blur(screen.getByLabelText("Email for Personal"));
+
+    await waitFor(() => {
+      expect(api.updateProfileEmail).toHaveBeenCalledWith("profile_2", "new@example.com");
+    });
   });
 
   it("disables adding a profile after five profiles", async () => {

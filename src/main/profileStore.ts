@@ -69,7 +69,7 @@ export class FileProfileStore {
 
   updateProfileMetadata(
     profileId: string,
-    metadata: Pick<GmailProfile, "email" | "avatarUrl">,
+    metadata: Partial<Pick<GmailProfile, "email" | "avatarUrl">>,
     now = new Date().toISOString()
   ): GmailProfile {
     const state = this.getState();

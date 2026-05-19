@@ -149,6 +149,11 @@ export function App() {
     await refreshState();
   }
 
+  async function updateProfileEmail(profileId: string, email: string) {
+    await gmailClient.updateProfileEmail(profileId, email);
+    await refreshState();
+  }
+
   async function setProfileCalendarEnabled(profileId: string, enabled: boolean) {
     try {
       await gmailClient.setProfileCalendarEnabled(profileId, enabled);
@@ -203,6 +208,7 @@ export function App() {
         activeProfileId={state.lastActiveProfileId}
         onCreateProfile={createProfile}
         onRenameProfile={renameProfile}
+        onUpdateProfileEmail={updateProfileEmail}
         onSetProfileCalendarEnabled={setProfileCalendarEnabled}
         onDeleteProfile={deleteProfile}
         onBackToMail={() => setPage("mail")}

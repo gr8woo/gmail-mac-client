@@ -6,6 +6,7 @@ export interface GmailClientApi {
   getProfileState(): Promise<ProfileState>;
   createProfile(displayName: string): Promise<GmailProfile>;
   renameProfile(profileId: string, displayName: string): Promise<GmailProfile>;
+  updateProfileEmail(profileId: string, email: string): Promise<GmailProfile>;
   deleteProfile(profileId: string): Promise<void>;
   switchProfile(profileId: string): Promise<void>;
   setProfileCalendarEnabled(profileId: string, enabled: boolean): Promise<GmailProfile>;
@@ -26,6 +27,7 @@ const api: GmailClientApi = {
   getProfileState: () => ipcRenderer.invoke("profiles:getState"),
   createProfile: (displayName) => ipcRenderer.invoke("profiles:create", displayName),
   renameProfile: (profileId, displayName) => ipcRenderer.invoke("profiles:rename", profileId, displayName),
+  updateProfileEmail: (profileId, email) => ipcRenderer.invoke("profiles:updateEmail", profileId, email),
   deleteProfile: (profileId) => ipcRenderer.invoke("profiles:delete", profileId),
   switchProfile: (profileId) => ipcRenderer.invoke("profiles:switch", profileId),
   setProfileCalendarEnabled: (profileId, enabled) =>

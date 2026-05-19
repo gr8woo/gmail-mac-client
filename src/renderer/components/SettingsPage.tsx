@@ -34,6 +34,7 @@ interface SettingsPageProps {
   activeProfileId: string | null;
   onCreateProfile(displayName: string): Promise<void>;
   onRenameProfile(profileId: string, displayName: string): Promise<void>;
+  onUpdateProfileEmail(profileId: string, email: string): Promise<void>;
   onSetProfileCalendarEnabled(profileId: string, enabled: boolean): Promise<void>;
   onDeleteProfile(profileId: string): Promise<void>;
   onBackToMail(): void;
@@ -47,6 +48,7 @@ export function SettingsPage({
   activeProfileId,
   onCreateProfile,
   onRenameProfile,
+  onUpdateProfileEmail,
   onSetProfileCalendarEnabled,
   onDeleteProfile,
   onBackToMail,
@@ -112,6 +114,7 @@ export function SettingsPage({
             activeProfileId={activeProfileId}
             onCreateProfile={onCreateProfile}
             onRenameProfile={onRenameProfile}
+            onUpdateProfileEmail={onUpdateProfileEmail}
             onSetProfileCalendarEnabled={onSetProfileCalendarEnabled}
             onDeleteProfile={onDeleteProfile}
           />
@@ -130,6 +133,7 @@ interface AccountSettingsProps {
   activeProfileId: string | null;
   onCreateProfile(displayName: string): Promise<void>;
   onRenameProfile(profileId: string, displayName: string): Promise<void>;
+  onUpdateProfileEmail(profileId: string, email: string): Promise<void>;
   onSetProfileCalendarEnabled(profileId: string, enabled: boolean): Promise<void>;
   onDeleteProfile(profileId: string): Promise<void>;
 }
@@ -139,6 +143,7 @@ function AccountSettings({
   activeProfileId,
   onCreateProfile,
   onRenameProfile,
+  onUpdateProfileEmail,
   onSetProfileCalendarEnabled,
   onDeleteProfile
 }: AccountSettingsProps) {
@@ -184,6 +189,20 @@ function AccountSettings({
       await onRenameProfile(profile.id, nextName);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to rename profile");
+    }
+  }
+
+  async function updateEmail(profile: GmailProfile, value: string) {
+    const nextEmail = value.trim();
+
+    if (nextEmail === (profile.email ?? "")) {
+      return;
+    }
+
+    try {
+      await onUpdateProfileEmail(profile.id, nextEmail);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unable to update email");
     }
   }
 
@@ -260,6 +279,7 @@ function AccountSettings({
               <label>
                 표시 이름
                 <Input
+                  key={`name:${selectedProfile.id}`}
                   aria-label={`Rename ${selectedProfile.displayName}`}
                   defaultValue={selectedProfile.displayName}
                   onBlur={(event) => void rename(selectedProfile, event.currentTarget.value)}
@@ -267,7 +287,12 @@ function AccountSettings({
               </label>
               <label>
                 이메일
-                <Input value={selectedProfile.email ?? ""} readOnly />
+                <Input
+                  key={`email:${selectedProfile.id}`}
+                  aria-label={`Email for ${selectedProfile.displayName}`}
+                  defaultValue={selectedProfile.email ?? ""}
+                  onBlur={(event) => void updateEmail(selectedProfile, event.currentTarget.value)}
+                />
               </label>
             </div>
             <Separator />

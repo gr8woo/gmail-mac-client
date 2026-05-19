@@ -1,0 +1,35 @@
+build/entitlements.mac.inherit.plist
+  h_31472534e8c051 1-12
+build/entitlements.mac.plist
+  h_31472534e8c051 1-14
+build/entitlements.mas.inherit.plist
+  h_31472534e8c051 1-16
+build/entitlements.mas.plist
+  h_31472534e8c051 1-16
+docs/app-store-release.md
+  h_31472534e8c051 1-68
+electron-builder.yml
+  h_31472534e8c051 1-2,12-23
+index.html
+  h_31472534e8c051 6
+package-lock.json
+  h_31472534e8c051 2,8,10
+package.json
+  h_31472534e8c051 2,4-5,14-16
+src/main/agentProviderRegistry.ts
+  h_31472534e8c051 253,265
+src/main/createMainWindow.ts
+  h_31472534e8c051 17
+src/main/main.ts
+  h_31472534e8c051 5
+---
+{
+  "schema_version": "zax-attestation/1.1.0",
+  "base_commit_sha": "e3469f64306e0877d48161e11214785ae66f8e69",
+  "prompts": {},
+  "humans": {
+    "h_31472534e8c051": {
+      "author": "gr8wooya@gmail.com"
+    }
+  }
+}

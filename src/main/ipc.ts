@@ -119,9 +119,9 @@ export function registerProfileIpc(
       return;
     }
 
-    const nextProfileId = store.getState().lastActiveProfileId;
-    if (nextProfileId) {
-      await target.switchToProfile(nextProfileId);
+    const nextSurface = store.getState().lastActiveSurface;
+    if (nextSurface) {
+      await target.switchToSurface(nextSurface);
     } else {
       target.clearProfileView();
     }

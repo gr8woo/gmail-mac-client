@@ -48,8 +48,13 @@ export async function createMainWindow(): Promise<BrowserWindow> {
     await window.loadFile(join(__dirname, "../renderer/index.html"));
   }
 
+  const lastActiveSurface = store.getState().lastActiveSurface;
+  if (lastActiveSurface) {
+    await gmailViewController.switchToSurface(lastActiveSurface);
+  }
+
   const lastActiveProfileId = store.getState().lastActiveProfileId;
-  if (lastActiveProfileId) {
+  if (!lastActiveSurface && lastActiveProfileId) {
     await gmailViewController.switchToProfile(lastActiveProfileId);
   }
 

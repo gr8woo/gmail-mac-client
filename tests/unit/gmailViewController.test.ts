@@ -5,6 +5,7 @@ import {
   getGmailBounds,
   getPrimaryGoogleAppRecoveryUrl,
   getPrimaryGmailRecoveryUrl,
+  getSurfaceCacheKey,
   getWindowOpenDisposition,
   isIgnorableLoadError,
   parseGmailPageContext,
@@ -12,12 +13,27 @@ import {
 } from "../../src/main/gmailViewController";
 
 describe("getProfileSwitchAction", () => {
+  it("uses independent cache keys for mail and calendar", () => {
+    expect(getSurfaceCacheKey({ profileId: "work", appKind: "mail" })).toBe("work:mail");
+    expect(getSurfaceCacheKey({ profileId: "work", appKind: "calendar" })).toBe("work:calendar");
+  });
+
+  it("creates a new view when a profile has mail cached but not calendar cached", () => {
+    expect(getProfileSwitchAction(new Set(["work:mail"]), { profileId: "work", appKind: "calendar" })).toBe(
+      "create-and-load"
+    );
+  });
+
   it("reuses a cached profile view instead of reloading the login flow", () => {
-    expect(getProfileSwitchAction(new Set(["work", "personal"]), "work")).toBe("activate-cached");
+    expect(getProfileSwitchAction(new Set(["work:mail", "personal:mail"]), { profileId: "work", appKind: "mail" })).toBe(
+      "activate-cached"
+    );
   });
 
   it("creates and loads a view for a profile that has not been opened yet", () => {
-    expect(getProfileSwitchAction(new Set(["work"]), "personal")).toBe("create-and-load");
+    expect(getProfileSwitchAction(new Set(["work:mail"]), { profileId: "personal", appKind: "mail" })).toBe(
+      "create-and-load"
+    );
   });
 });
 

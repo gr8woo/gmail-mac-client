@@ -3,7 +3,7 @@ import type { BrowserWindowConstructorOptions } from "electron";
 import type { Event, Input, Rectangle, WebContents } from "electron";
 import type { GmailPageContext } from "../shared/agent";
 import { getPartitionName } from "../shared/profile";
-import type { GoogleAppKind } from "../shared/profile";
+import type { ActiveGoogleSurface, GoogleAppKind } from "../shared/profile";
 import { classifyNavigationUrl } from "../shared/urlPolicy";
 import type { FileProfileStore } from "./profileStore";
 import {
@@ -96,11 +96,11 @@ interface GmailViewControllerOptions {
 
 export class GmailViewController {
   private currentView: WebContentsView | null = null;
-  private currentProfileId: string | null = null;
+  private currentSurface: ActiveGoogleSurface | null = null;
   private currentViewAttached = false;
   private gmailViewVisible = true;
   private forwardingEditingInput = false;
-  private readonly profileViews = new Map<string, WebContentsView>();
+  private readonly surfaceViews = new Map<string, WebContentsView>();
   private switchToken = 0;
   private topInset = APP_BAR_HEIGHT;
   private rightInset = 0;
@@ -129,29 +129,39 @@ export class GmailViewController {
   }
 
   async switchToProfile(profileId: string): Promise<void> {
-    const profile = this.store.getState().profiles.find((candidate) => candidate.id === profileId);
+    await this.switchToSurface({ profileId, appKind: "mail" });
+  }
+
+  async switchToSurface(surface: ActiveGoogleSurface): Promise<void> {
+    const profile = this.store.getState().profiles.find((candidate) => candidate.id === surface.profileId);
 
     if (!profile) {
-      throw new Error(`Profile not found: ${profileId}`);
+      throw new Error(`Profile not found: ${surface.profileId}`);
+    }
+
+    if (surface.appKind === "calendar" && !profile.calendarEnabled) {
+      throw new Error(`Calendar is not enabled for profile: ${surface.profileId}`);
     }
 
     const token = ++this.switchToken;
-    if (this.currentProfileId === profile.id && this.currentView) {
+    const surfaceKey = getSurfaceCacheKey(surface);
+
+    if (this.currentSurface && getSurfaceCacheKey(this.currentSurface) === surfaceKey && this.currentView) {
       this.layout();
       return;
     }
 
     this.detachCurrentView();
 
-    const switchAction = getProfileSwitchAction(new Set(this.profileViews.keys()), profile.id);
+    const switchAction = getProfileSwitchAction(new Set(this.surfaceViews.keys()), surface);
     const view =
-      switchAction === "activate-cached" ? this.profileViews.get(profile.id) : this.createProfileView(profile.id);
+      switchAction === "activate-cached" ? this.surfaceViews.get(surfaceKey) : this.createSurfaceView(surface);
 
     if (!view) {
-      throw new Error(`Profile view not found: ${profile.id}`);
+      throw new Error(`Surface view not found: ${surfaceKey}`);
     }
 
-    this.currentProfileId = profile.id;
+    this.currentSurface = surface;
     this.currentView = view;
     this.attachCurrentViewIfVisible();
 
@@ -160,7 +170,7 @@ export class GmailViewController {
     }
 
     try {
-      await view.webContents.loadURL(this.startUrl);
+      await view.webContents.loadURL(getGoogleAppStartUrl(surface.appKind));
     } catch (error) {
       if (isIgnorableLoadError(error)) {
         return;
@@ -172,10 +182,10 @@ export class GmailViewController {
     }
   }
 
-  private createProfileView(profileId: string): WebContentsView {
+  private createSurfaceView(surface: ActiveGoogleSurface): WebContentsView {
     const view = new WebContentsView({
       webPreferences: {
-        partition: getPartitionName(profileId),
+        partition: getPartitionName(surface.profileId),
         nodeIntegration: false,
         contextIsolation: true,
         sandbox: true
@@ -191,7 +201,7 @@ export class GmailViewController {
       if (disposition.action === "allow-popup") {
         return {
           action: "allow",
-          overrideBrowserWindowOptions: createGmailPopupWindowOptions(profileId)
+          overrideBrowserWindowOptions: createGmailPopupWindowOptions(surface.profileId)
         };
       }
 
@@ -209,7 +219,7 @@ export class GmailViewController {
     });
 
     view.webContents.on("did-create-window", (childWindow) => {
-      protectGmailPopupWindow(childWindow, profileId, this.allowedPolicyBypassUrl);
+      protectGmailPopupWindow(childWindow, surface.profileId, this.allowedPolicyBypassUrl);
     });
 
     view.webContents.on("will-navigate", (event, url) => {
@@ -222,18 +232,18 @@ export class GmailViewController {
 
     view.webContents.on("did-navigate", (_event, url) => {
       debugNavigation("did-navigate", url);
-      this.restorePrimaryGmailViewIfNeeded(url);
-      this.scheduleProfileMetadataCapture(profileId);
+      this.restorePrimaryGoogleAppViewIfNeeded(url, surface, view);
+      this.scheduleProfileMetadataCapture(surface);
     });
 
     view.webContents.on("did-navigate-in-page", (_event, url) => {
       debugNavigation("did-navigate-in-page", url);
-      this.restorePrimaryGmailViewIfNeeded(url);
-      this.scheduleProfileMetadataCapture(profileId);
+      this.restorePrimaryGoogleAppViewIfNeeded(url, surface, view);
+      this.scheduleProfileMetadataCapture(surface);
     });
 
     view.webContents.on("did-finish-load", () => {
-      this.scheduleProfileMetadataCapture(profileId);
+      this.scheduleProfileMetadataCapture(surface);
     });
 
     view.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedUrl, isMainFrame) => {
@@ -250,7 +260,7 @@ export class GmailViewController {
       }
     });
 
-    this.profileViews.set(profileId, view);
+    this.surfaceViews.set(getSurfaceCacheKey(surface), view);
     return view;
   }
 
@@ -290,7 +300,9 @@ export class GmailViewController {
       return;
     }
 
-    const recoveryUrl = getPrimaryGmailRecoveryUrl(webContents.getURL(), this.startUrl);
+    const recoveryUrl = this.currentSurface
+      ? getPrimaryGoogleAppRecoveryUrl(webContents.getURL(), this.currentSurface.appKind)
+      : null;
     if (recoveryUrl) {
       void webContents.loadURL(recoveryUrl).catch((error: unknown) => {
         if (!isIgnorableLoadError(error)) {
@@ -343,9 +355,19 @@ export class GmailViewController {
     this.closeAllProfileViews();
   }
 
+  closeSurfaceView(surface: ActiveGoogleSurface): void {
+    ++this.switchToken;
+    this.closeSurfaceViewByKey(getSurfaceCacheKey(surface));
+  }
+
   closeProfileView(profileId: string): void {
     ++this.switchToken;
-    this.closeProfileViewById(profileId);
+
+    for (const key of [...this.surfaceViews.keys()]) {
+      if (key.startsWith(`${profileId}:`)) {
+        this.closeSurfaceViewByKey(key);
+      }
+    }
   }
 
   private detachCurrentView(): void {
@@ -355,7 +377,7 @@ export class GmailViewController {
 
     this.detachCurrentViewFromWindow();
     this.currentView = null;
-    this.currentProfileId = null;
+    this.currentSurface = null;
   }
 
   private attachCurrentViewIfVisible(): void {
@@ -384,18 +406,18 @@ export class GmailViewController {
     this.currentViewAttached = false;
   }
 
-  private closeProfileViewById(profileId: string): void {
-    const view = this.profileViews.get(profileId);
+  private closeSurfaceViewByKey(surfaceKey: string): void {
+    const view = this.surfaceViews.get(surfaceKey);
 
     if (!view) {
       return;
     }
 
-    if (this.currentProfileId === profileId) {
+    if (this.currentSurface && getSurfaceCacheKey(this.currentSurface) === surfaceKey) {
       this.detachCurrentView();
     }
 
-    this.profileViews.delete(profileId);
+    this.surfaceViews.delete(surfaceKey);
 
     const webContents = getLiveWebContents(view);
     if (webContents) {
@@ -406,24 +428,24 @@ export class GmailViewController {
   }
 
   private closeAllProfileViews(): void {
-    const profileIds = [...this.profileViews.keys()];
+    const surfaceKeys = [...this.surfaceViews.keys()];
 
-    for (const profileId of profileIds) {
-      this.closeProfileViewById(profileId);
+    for (const surfaceKey of surfaceKeys) {
+      this.closeSurfaceViewByKey(surfaceKey);
     }
 
     this.currentView = null;
-    this.currentProfileId = null;
+    this.currentSurface = null;
   }
 
-  private scheduleProfileMetadataCapture(profileId: string): void {
+  private scheduleProfileMetadataCapture(surface: ActiveGoogleSurface): void {
     if (!this.onProfileMetadata) {
       return;
     }
 
     for (const delayMs of [0, 1000, 3000]) {
       setTimeout(() => {
-        void this.captureProfileMetadata(profileId).catch((error: unknown) => {
+        void this.captureProfileMetadata(surface).catch((error: unknown) => {
           if (!isDestroyedObjectError(error)) {
             debugNavigation("metadata-capture-failed", error instanceof Error ? error.message : String(error));
           }
@@ -432,8 +454,8 @@ export class GmailViewController {
     }
   }
 
-  private async captureProfileMetadata(profileId: string): Promise<void> {
-    const view = this.profileViews.get(profileId);
+  private async captureProfileMetadata(surface: ActiveGoogleSurface): Promise<void> {
+    const view = this.surfaceViews.get(getSurfaceCacheKey(surface));
     const webContents = view ? getLiveWebContents(view) : null;
 
     if (!webContents) {
@@ -444,7 +466,7 @@ export class GmailViewController {
     const metadata = parseGoogleAccountMetadata(rawMetadata);
 
     if (metadata) {
-      this.onProfileMetadata?.(profileId, metadata);
+      this.onProfileMetadata?.(surface.profileId, metadata);
     }
   }
 
@@ -475,9 +497,13 @@ export class GmailViewController {
     }
   }
 
-  private restorePrimaryGmailViewIfNeeded(url: string): void {
-    const recoveryUrl = getPrimaryGmailRecoveryUrl(url, this.startUrl);
-    const webContents = this.currentView ? getLiveWebContents(this.currentView) : null;
+  private restorePrimaryGoogleAppViewIfNeeded(
+    url: string,
+    surface: ActiveGoogleSurface,
+    view: WebContentsView
+  ): void {
+    const recoveryUrl = getPrimaryGoogleAppRecoveryUrl(url, surface.appKind);
+    const webContents = getLiveWebContents(view);
 
     if (!recoveryUrl || !webContents) {
       return;
@@ -501,8 +527,15 @@ export function getGmailBounds(bounds: Rectangle, topInset = APP_BAR_HEIGHT, rig
   };
 }
 
-export function getProfileSwitchAction(cachedProfileIds: ReadonlySet<string>, profileId: string): ProfileSwitchAction {
-  return cachedProfileIds.has(profileId) ? "activate-cached" : "create-and-load";
+export function getSurfaceCacheKey(surface: ActiveGoogleSurface): `${string}:${GoogleAppKind}` {
+  return `${surface.profileId}:${surface.appKind}`;
+}
+
+export function getProfileSwitchAction(
+  cachedSurfaceKeys: ReadonlySet<string>,
+  surface: ActiveGoogleSurface
+): ProfileSwitchAction {
+  return cachedSurfaceKeys.has(getSurfaceCacheKey(surface)) ? "activate-cached" : "create-and-load";
 }
 
 export function getWindowOpenDisposition(rawUrl: string): WindowOpenDisposition {

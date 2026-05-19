@@ -1,4 +1,5 @@
 import type { GmailProfile, ProfileState } from "../shared/profile";
+import type { AgentChatResponse, AgentProviderId, AgentProviderStatus, ClaudeCodeStatus } from "../shared/agent";
 
 declare global {
   interface Window {
@@ -8,6 +9,15 @@ declare global {
       renameProfile(profileId: string, displayName: string): Promise<GmailProfile>;
       deleteProfile(profileId: string): Promise<void>;
       switchProfile(profileId: string): Promise<void>;
+      setChromeHeight(height: number): Promise<void>;
+      setGmailViewVisible(visible: boolean): Promise<void>;
+      setGmailRightInset(width: number): Promise<void>;
+      refreshGmailView(): Promise<void>;
+      getClaudeCodeStatus(): Promise<ClaudeCodeStatus>;
+      getAgentProviders(): Promise<AgentProviderStatus[]>;
+      startAgentProviderLogin(providerId: AgentProviderId): Promise<void>;
+      sendAgentMessage(providerId: AgentProviderId, message: string): Promise<AgentChatResponse>;
+      onProfilesChanged(callback: () => void): () => void;
     };
   }
 }
@@ -17,5 +27,15 @@ export const gmailClient = {
   createProfile: (displayName: string) => window.gmailClient.createProfile(displayName),
   renameProfile: (profileId: string, displayName: string) => window.gmailClient.renameProfile(profileId, displayName),
   deleteProfile: (profileId: string) => window.gmailClient.deleteProfile(profileId),
-  switchProfile: (profileId: string) => window.gmailClient.switchProfile(profileId)
+  switchProfile: (profileId: string) => window.gmailClient.switchProfile(profileId),
+  setChromeHeight: (height: number) => window.gmailClient.setChromeHeight(height),
+  setGmailViewVisible: (visible: boolean) => window.gmailClient.setGmailViewVisible(visible),
+  setGmailRightInset: (width: number) => window.gmailClient.setGmailRightInset(width),
+  refreshGmailView: () => window.gmailClient.refreshGmailView(),
+  getClaudeCodeStatus: () => window.gmailClient.getClaudeCodeStatus(),
+  getAgentProviders: () => window.gmailClient.getAgentProviders(),
+  startAgentProviderLogin: (providerId: AgentProviderId) => window.gmailClient.startAgentProviderLogin(providerId),
+  sendAgentMessage: (providerId: AgentProviderId, message: string) =>
+    window.gmailClient.sendAgentMessage(providerId, message),
+  onProfilesChanged: (callback: () => void) => window.gmailClient.onProfilesChanged(callback)
 };

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createProfile, getPartitionName, normalizeProfileName } from "../../src/shared/profile";
+import { createProfile, getPartitionName, MAX_PROFILES, normalizeProfileName } from "../../src/shared/profile";
 
 describe("profile helpers", () => {
   it("normalizes profile names", () => {
@@ -24,5 +24,9 @@ describe("profile helpers", () => {
 
   it("derives partition names from profile ids", () => {
     expect(getPartitionName("abc")).toBe("persist:gmail-profile-abc");
+  });
+
+  it("limits local Gmail profiles to five accounts", () => {
+    expect(MAX_PROFILES).toBe(5);
   });
 });

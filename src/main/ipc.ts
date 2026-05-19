@@ -3,6 +3,10 @@ import type { IpcMainInvokeEvent, WebFrameMain } from "electron";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { getPartitionName } from "../shared/profile";
+import type { AgentChatResponse, AgentProviderId, AgentProviderStatus, ClaudeCodeStatus } from "../shared/agent";
+import type { GmailPageContext } from "../shared/agent";
+import { ClaudeCodeBridge, createClaudeCodeBridge } from "./claudeCodeBridge";
+import { AgentProviderRegistry, createAgentProviderRegistry } from "./agentProviderRegistry";
 import { FileProfileStore } from "./profileStore";
 
 const allowedDevServerOrigin = "http://127.0.0.1:5173";
@@ -11,18 +15,34 @@ const profileIpcChannels = [
   "profiles:create",
   "profiles:rename",
   "profiles:delete",
-  "profiles:switch"
+  "profiles:switch",
+  "appChrome:setHeight",
+  "appChrome:setGmailViewVisible",
+  "appChrome:setGmailRightInset",
+  "appChrome:refreshGmailView",
+  "claudeCode:getStatus",
+  "claudeCode:sendMessage",
+  "agent:getProviders",
+  "agent:startProviderLogin",
+  "agent:sendMessage"
 ] as const;
 
 export interface ProfileSwitchTarget {
   switchToProfile(profileId: string): Promise<void>;
   clearProfileView(): void;
   closeProfileView(profileId: string): void;
+  setTopInset(height: number): void;
+  setGmailViewVisible(visible: boolean): void;
+  setRightInset(width: number): void;
+  refreshCurrentView(): void;
+  getCurrentPageContext(): Promise<GmailPageContext | null>;
 }
 
 interface ProfileIpcRegistration {
   store: FileProfileStore;
   target: ProfileSwitchTarget;
+  claudeCodeBridge: ClaudeCodeBridge;
+  agentProviderRegistry: AgentProviderRegistry;
 }
 
 let activeRegistration: ProfileIpcRegistration | null = null;
@@ -32,8 +52,19 @@ export function createDefaultProfileStore(): FileProfileStore {
   return new FileProfileStore(join(app.getPath("userData"), "profiles.json"));
 }
 
-export function registerProfileIpc(store: FileProfileStore, target: ProfileSwitchTarget): void {
-  activeRegistration = { store, target };
+export function createDefaultAgentProviderRegistry(): AgentProviderRegistry {
+  return createAgentProviderRegistry(undefined, {
+    codexHome: join(app.getPath("userData"), "codex-home")
+  });
+}
+
+export function registerProfileIpc(
+  store: FileProfileStore,
+  target: ProfileSwitchTarget,
+  claudeCodeBridge = createClaudeCodeBridge(),
+  agentProviderRegistry = createDefaultAgentProviderRegistry()
+): void {
+  activeRegistration = { store, target, claudeCodeBridge, agentProviderRegistry };
 
   if (registered) {
     return;
@@ -99,6 +130,62 @@ export function registerProfileIpc(store: FileProfileStore, target: ProfileSwitc
     await target.switchToProfile(id);
   });
 
+  ipcMain.handle("appChrome:setHeight", (event, height: unknown) => {
+    assertTrustedSender(event);
+    getRegistration().target.setTopInset(requireChromeHeight(height));
+  });
+
+  ipcMain.handle("appChrome:setGmailViewVisible", (event, visible: unknown) => {
+    assertTrustedSender(event);
+    getRegistration().target.setGmailViewVisible(requireBoolean(visible, "visible"));
+  });
+
+  ipcMain.handle("appChrome:setGmailRightInset", (event, width: unknown) => {
+    assertTrustedSender(event);
+    getRegistration().target.setRightInset(requireChromeHeight(width));
+  });
+
+  ipcMain.handle("appChrome:refreshGmailView", (event) => {
+    assertTrustedSender(event);
+    getRegistration().target.refreshCurrentView();
+  });
+
+  ipcMain.handle("claudeCode:getStatus", async (event): Promise<ClaudeCodeStatus> => {
+    assertTrustedSender(event);
+    return getRegistration().claudeCodeBridge.getStatus();
+  });
+
+  ipcMain.handle("claudeCode:sendMessage", async (event, message: unknown): Promise<AgentChatResponse> => {
+    assertTrustedSender(event);
+    const { claudeCodeBridge, target } = getRegistration();
+    const context = await target.getCurrentPageContext().catch(() => null);
+    return claudeCodeBridge.sendMessage(requireString(message, "message"), context);
+  });
+
+  ipcMain.handle("agent:getProviders", async (event): Promise<AgentProviderStatus[]> => {
+    assertTrustedSender(event);
+    return getRegistration().agentProviderRegistry.getProviders();
+  });
+
+  ipcMain.handle("agent:startProviderLogin", async (event, providerId: unknown): Promise<void> => {
+    assertTrustedSender(event);
+    await getRegistration().agentProviderRegistry.startProviderLogin(requireAgentProviderId(providerId));
+  });
+
+  ipcMain.handle(
+    "agent:sendMessage",
+    async (event, providerId: unknown, message: unknown): Promise<AgentChatResponse> => {
+      assertTrustedSender(event);
+      const { agentProviderRegistry, target } = getRegistration();
+      const context = await target.getCurrentPageContext().catch(() => null);
+      return agentProviderRegistry.sendMessage(
+        requireAgentProviderId(providerId),
+        requireString(message, "message"),
+        context
+      );
+    }
+  );
+
   registered = true;
 }
 
@@ -125,6 +212,30 @@ function requireString(value: unknown, name: string): string {
   }
 
   return value;
+}
+
+function requireChromeHeight(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new Error("height must be a finite number");
+  }
+
+  return value;
+}
+
+function requireBoolean(value: unknown, name: string): boolean {
+  if (typeof value !== "boolean") {
+    throw new Error(`${name} must be a boolean`);
+  }
+
+  return value;
+}
+
+function requireAgentProviderId(value: unknown): AgentProviderId {
+  if (value === "claude-code" || value === "chatgpt-codex") {
+    return value;
+  }
+
+  throw new Error("providerId must be a known AI provider");
 }
 
 function assertTrustedSender(event: IpcMainInvokeEvent): void {

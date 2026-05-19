@@ -94,4 +94,68 @@ describe("FileProfileStore", () => {
 
     expect(store.getState().lastActiveProfileId).toBe(profile.id);
   });
+
+  it("rejects creating more than five profiles", () => {
+    const store = makeStore();
+
+    for (let index = 1; index <= 5; index += 1) {
+      store.createProfile(`Profile ${index}`, "2026-05-08T00:00:00.000Z");
+    }
+
+    expect(() => store.createProfile("Profile 6", "2026-05-08T00:00:00.000Z")).toThrow(
+      "You can create up to 5 Gmail profiles"
+    );
+  });
+
+  it("loads and preserves Gmail account metadata", () => {
+    const store = makeStore();
+    writeFileSync(
+      store.filePath,
+      JSON.stringify({
+        profiles: [
+          {
+            id: "profile_1",
+            displayName: "Work",
+            partition: "persist:gmail-profile-profile_1",
+            email: "gr8woo@zigbang.com",
+            avatarUrl: "https://lh3.googleusercontent.com/a/work-avatar",
+            createdAt: "2026-05-08T00:00:00.000Z",
+            updatedAt: "2026-05-08T01:00:00.000Z"
+          }
+        ],
+        lastActiveProfileId: "profile_1"
+      }),
+      "utf8"
+    );
+
+    expect(store.getState().profiles[0]).toMatchObject({
+      email: "gr8woo@zigbang.com",
+      avatarUrl: "https://lh3.googleusercontent.com/a/work-avatar"
+    });
+  });
+
+  it("updates Gmail account metadata without changing the display name", () => {
+    const store = makeStore();
+    const profile = store.createProfile("Work", "2026-05-08T00:00:00.000Z");
+
+    const updated = store.updateProfileMetadata(
+      profile.id,
+      {
+        email: "gr8woo@zigbang.com",
+        avatarUrl: "https://lh3.googleusercontent.com/a/work-avatar"
+      },
+      "2026-05-08T01:00:00.000Z"
+    );
+
+    expect(updated).toMatchObject({
+      displayName: "Work",
+      email: "gr8woo@zigbang.com",
+      avatarUrl: "https://lh3.googleusercontent.com/a/work-avatar",
+      updatedAt: "2026-05-08T01:00:00.000Z"
+    });
+    expect(store.getState().profiles[0]).toMatchObject({
+      email: "gr8woo@zigbang.com",
+      avatarUrl: "https://lh3.googleusercontent.com/a/work-avatar"
+    });
+  });
 });

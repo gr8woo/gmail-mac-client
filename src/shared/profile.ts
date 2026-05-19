@@ -1,7 +1,11 @@
+export const MAX_PROFILES = 5;
+
 export interface GmailProfile {
   id: string;
   displayName: string;
   partition: string;
+  email?: string;
+  avatarUrl?: string;
   createdAt: string;
   updatedAt: string;
 }

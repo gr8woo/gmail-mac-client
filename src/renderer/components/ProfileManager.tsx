@@ -1,4 +1,5 @@
 import { FormEvent, useState } from "react";
+import { MAX_PROFILES } from "../../shared/profile";
 import type { GmailProfile } from "../../shared/profile";
 
 interface ProfileManagerProps {
@@ -19,10 +20,16 @@ export function ProfileManager({
   const [newName, setNewName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const trimmedNewName = newName.trim();
+  const hasProfileCapacity = profiles.length < MAX_PROFILES;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+
+    if (!hasProfileCapacity) {
+      setError(`You can create up to ${MAX_PROFILES} Gmail profiles`);
+      return;
+    }
 
     if (!trimmedNewName) {
       setError("Profile name is required");
@@ -52,16 +59,17 @@ export function ProfileManager({
   }
 
   return (
-    <div className="app-bar-manager" role="toolbar" aria-label="Profile management">
+    <section className="profile-manager" role="region" aria-label="Profile management">
       <form onSubmit={submit}>
         <label>
           New profile name
-          <input value={newName} onChange={(event) => setNewName(event.currentTarget.value)} />
+          <input value={newName} disabled={!hasProfileCapacity} onChange={(event) => setNewName(event.currentTarget.value)} />
         </label>
-        <button type="submit" disabled={!trimmedNewName}>
+        <button type="submit" disabled={!trimmedNewName || !hasProfileCapacity}>
           Add profile
         </button>
       </form>
+      <p className="profile-limit">{profiles.length} of {MAX_PROFILES} profiles used</p>
       {error ? <p role="alert">{error}</p> : null}
       <ul>
         {profiles.map((profile) => (
@@ -78,8 +86,8 @@ export function ProfileManager({
         ))}
       </ul>
       <button type="button" onClick={onClose}>
-        Close
+        Close settings
       </button>
-    </div>
+    </section>
   );
 }

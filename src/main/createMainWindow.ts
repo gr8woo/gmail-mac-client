@@ -23,7 +23,18 @@ export async function createMainWindow(): Promise<BrowserWindow> {
     }
   });
 
-  const gmailViewController = new GmailViewController(window, store);
+  const gmailViewController = new GmailViewController(window, store, {
+    onProfileMetadata: (profileId, metadata) => {
+      const profile = store.getState().profiles.find((candidate) => candidate.id === profileId);
+
+      if (!profile || (profile.email === metadata.email && profile.avatarUrl === metadata.avatarUrl)) {
+        return;
+      }
+
+      store.updateProfileMetadata(profileId, metadata);
+      window.webContents.send("profiles:changed");
+    }
+  });
   gmailViewController.attach();
   registerProfileIpc(store, gmailViewController);
 

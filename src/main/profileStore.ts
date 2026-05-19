@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { createProfile, normalizeProfileName } from "../shared/profile";
+import { createProfile, MAX_PROFILES, normalizeProfileName } from "../shared/profile";
 import type { GmailProfile, ProfileState } from "../shared/profile";
 
 const EMPTY_STATE: ProfileState = {
@@ -23,6 +23,11 @@ export class FileProfileStore {
 
   createProfile(displayName: string, now = new Date().toISOString()): GmailProfile {
     const state = this.getState();
+
+    if (state.profiles.length >= MAX_PROFILES) {
+      throw new Error(`You can create up to ${MAX_PROFILES} Gmail profiles`);
+    }
+
     const profile = createProfile(displayName, randomUUID(), now);
 
     this.saveState({
@@ -58,6 +63,36 @@ export class FileProfileStore {
 
     this.saveState({ ...state, profiles });
     return renamedProfile;
+  }
+
+  updateProfileMetadata(
+    profileId: string,
+    metadata: Pick<GmailProfile, "email" | "avatarUrl">,
+    now = new Date().toISOString()
+  ): GmailProfile {
+    const state = this.getState();
+    let updatedProfile: GmailProfile | undefined;
+
+    const profiles = state.profiles.map((profile) => {
+      if (profile.id !== profileId) {
+        return profile;
+      }
+
+      updatedProfile = {
+        ...profile,
+        ...pickProfileMetadata(metadata),
+        updatedAt: now
+      };
+
+      return updatedProfile;
+    });
+
+    if (!updatedProfile) {
+      throw new Error(`Profile not found: ${profileId}`);
+    }
+
+    this.saveState({ ...state, profiles });
+    return updatedProfile;
   }
 
   deleteProfile(profileId: string): void {
@@ -140,12 +175,22 @@ function validateProfile(profile: unknown, index: number): GmailProfile {
     }
   }
 
-  return {
+  const validated: GmailProfile = {
     id: getProfileString(profile, "id"),
     displayName: getProfileString(profile, "displayName"),
     partition: getProfileString(profile, "partition"),
     createdAt: getProfileString(profile, "createdAt"),
     updatedAt: getProfileString(profile, "updatedAt")
+  };
+
+  const metadata = pickProfileMetadata({
+    email: profile.email,
+    avatarUrl: profile.avatarUrl
+  });
+
+  return {
+    ...validated,
+    ...metadata
   };
 }
 
@@ -161,4 +206,28 @@ function getProfileString(profile: Record<string, unknown>, field: keyof GmailPr
   }
 
   return value;
+}
+
+function pickProfileMetadata(metadata: { email?: unknown; avatarUrl?: unknown }): Partial<
+  Pick<GmailProfile, "email" | "avatarUrl">
+> {
+  const picked: Partial<Pick<GmailProfile, "email" | "avatarUrl">> = {};
+
+  if (metadata.email !== undefined) {
+    if (typeof metadata.email !== "string") {
+      throw new Error("Invalid profile store: email must be a string");
+    }
+
+    picked.email = metadata.email;
+  }
+
+  if (metadata.avatarUrl !== undefined) {
+    if (typeof metadata.avatarUrl !== "string") {
+      throw new Error("Invalid profile store: avatarUrl must be a string");
+    }
+
+    picked.avatarUrl = metadata.avatarUrl;
+  }
+
+  return picked;
 }

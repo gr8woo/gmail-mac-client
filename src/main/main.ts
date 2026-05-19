@@ -1,4 +1,5 @@
 import { app, BrowserWindow } from "electron";
+import { applyDockIcon } from "./appIcon";
 import { createMainWindow } from "./createMainWindow";
 
 app.setName("Gmail Mac Client");
@@ -15,6 +16,7 @@ async function ensureWindow(): Promise<BrowserWindow> {
 }
 
 app.whenReady().then(async () => {
+  applyDockIcon();
   await ensureWindow();
 
   app.on("activate", async () => {

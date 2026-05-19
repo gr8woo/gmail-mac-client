@@ -152,6 +152,30 @@ describe("FileProfileStore", () => {
     expect(reloaded.getState().lastActiveSurface).toEqual({ profileId: profile.id, appKind: "calendar" });
   });
 
+  it("rejects calendar as the last active surface when calendar is disabled", () => {
+    const store = makeStore();
+    const profile = store.createProfile("Work", "2026-05-19T00:00:00.000Z");
+    const stateBeforeRejection = store.getState();
+
+    expect(() => store.setLastActiveSurface({ profileId: profile.id, appKind: "calendar" })).toThrow(
+      `Calendar is not enabled for profile: ${profile.id}`
+    );
+    expect(store.getState()).toEqual(stateBeforeRejection);
+  });
+
+  it("rejects unknown Google app kinds as the last active surface", () => {
+    const store = makeStore();
+    const profile = store.createProfile("Work", "2026-05-19T00:00:00.000Z");
+    const stateBeforeRejection = store.getState();
+
+    expect(() =>
+      store.setLastActiveSurface({ profileId: profile.id, appKind: "drive" } as unknown as Parameters<
+        typeof store.setLastActiveSurface
+      >[0])
+    ).toThrow("Invalid Google app kind: drive");
+    expect(store.getState()).toEqual(stateBeforeRejection);
+  });
+
   it("falls back to mail when disabling the active calendar surface", () => {
     const store = makeStore();
     const profile = store.createProfile("Work", "2026-05-19T00:00:00.000Z");

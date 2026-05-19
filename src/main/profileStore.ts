@@ -159,6 +159,11 @@ export class FileProfileStore {
 
   setLastActiveSurface(surface: ActiveGoogleSurface): void {
     const state = this.getState();
+
+    if (surface.appKind !== "mail" && surface.appKind !== "calendar") {
+      throw new Error(`Invalid Google app kind: ${String(surface.appKind)}`);
+    }
+
     const profile = state.profiles.find((candidate) => candidate.id === surface.profileId);
 
     if (!profile) {

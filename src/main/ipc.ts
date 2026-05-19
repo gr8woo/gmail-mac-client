@@ -3,6 +3,7 @@ import type { IpcMainInvokeEvent, WebFrameMain } from "electron";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { getPartitionName } from "../shared/profile";
+import type { ActiveGoogleSurface } from "../shared/profile";
 import type { AgentChatResponse, AgentProviderId, AgentProviderStatus, ClaudeCodeStatus } from "../shared/agent";
 import type { GmailPageContext } from "../shared/agent";
 import { ClaudeCodeBridge, createClaudeCodeBridge } from "./claudeCodeBridge";
@@ -16,10 +17,13 @@ const profileIpcChannels = [
   "profiles:rename",
   "profiles:delete",
   "profiles:switch",
+  "profiles:setCalendarEnabled",
+  "profiles:switchSurface",
   "appChrome:setHeight",
   "appChrome:setGmailViewVisible",
   "appChrome:setGmailRightInset",
   "appChrome:refreshGmailView",
+  "appChrome:refreshCurrentSurface",
   "claudeCode:getStatus",
   "claudeCode:sendMessage",
   "agent:getProviders",
@@ -29,8 +33,10 @@ const profileIpcChannels = [
 
 export interface ProfileSwitchTarget {
   switchToProfile(profileId: string): Promise<void>;
+  switchToSurface(surface: ActiveGoogleSurface): Promise<void>;
   clearProfileView(): void;
   closeProfileView(profileId: string): void;
+  closeSurfaceView(surface: ActiveGoogleSurface): void;
   setTopInset(height: number): void;
   setGmailViewVisible(visible: boolean): void;
   setRightInset(width: number): void;
@@ -130,6 +136,38 @@ export function registerProfileIpc(
     await target.switchToProfile(id);
   });
 
+  ipcMain.handle("profiles:setCalendarEnabled", async (event, profileId: unknown, enabled: unknown) => {
+    assertTrustedSender(event);
+    const { store, target } = getRegistration();
+    const id = requireString(profileId, "profileId");
+    const isEnabled = requireBoolean(enabled, "enabled");
+    const stateBeforeToggle = store.getState();
+    const updatedProfile = store.setProfileCalendarEnabled(id, isEnabled);
+
+    if (
+      !isEnabled &&
+      stateBeforeToggle.lastActiveSurface?.profileId === id &&
+      stateBeforeToggle.lastActiveSurface.appKind === "calendar"
+    ) {
+      await target.switchToSurface({ profileId: id, appKind: "mail" });
+    }
+
+    if (!isEnabled) {
+      target.closeSurfaceView({ profileId: id, appKind: "calendar" });
+    }
+
+    return updatedProfile;
+  });
+
+  ipcMain.handle("profiles:switchSurface", async (event, rawSurface: unknown) => {
+    assertTrustedSender(event);
+    const { store, target } = getRegistration();
+    const surface = requireActiveSurface(rawSurface);
+
+    store.setLastActiveSurface(surface);
+    await target.switchToSurface(surface);
+  });
+
   ipcMain.handle("appChrome:setHeight", (event, height: unknown) => {
     assertTrustedSender(event);
     getRegistration().target.setTopInset(requireChromeHeight(height));
@@ -146,6 +184,11 @@ export function registerProfileIpc(
   });
 
   ipcMain.handle("appChrome:refreshGmailView", (event) => {
+    assertTrustedSender(event);
+    getRegistration().target.refreshCurrentView();
+  });
+
+  ipcMain.handle("appChrome:refreshCurrentSurface", (event) => {
     assertTrustedSender(event);
     getRegistration().target.refreshCurrentView();
   });
@@ -228,6 +271,22 @@ function requireBoolean(value: unknown, name: string): boolean {
   }
 
   return value;
+}
+
+function requireActiveSurface(value: unknown): ActiveGoogleSurface {
+  if (!value || typeof value !== "object") {
+    throw new Error("surface must be an object");
+  }
+
+  const surface = value as Record<string, unknown>;
+  const profileId = requireString(surface.profileId, "profileId");
+  const appKind = surface.appKind;
+
+  if (appKind !== "mail" && appKind !== "calendar") {
+    throw new Error("appKind must be mail or calendar");
+  }
+
+  return { profileId, appKind };
 }
 
 function requireAgentProviderId(value: unknown): AgentProviderId {

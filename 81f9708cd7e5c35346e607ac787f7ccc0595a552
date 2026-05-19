@@ -1,0 +1,15 @@
+src/shared/profile.ts
+  h_31472534e8c051 3-9,16,24,48,53-60
+tests/unit/profile.test.ts
+  h_31472534e8c051 2-9,27,33-53
+---
+{
+  "schema_version": "zax-attestation/1.1.0",
+  "base_commit_sha": "81f9708cd7e5c35346e607ac787f7ccc0595a552",
+  "prompts": {},
+  "humans": {
+    "h_31472534e8c051": {
+      "author": "gr8wooya@gmail.com"
+    }
+  }
+}

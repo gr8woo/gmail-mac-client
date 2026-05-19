@@ -21,7 +21,7 @@ afterEach(() => {
 describe("FileProfileStore", () => {
   it("starts empty", () => {
     const store = makeStore();
-    expect(store.getState()).toEqual({ profiles: [], lastActiveProfileId: null });
+    expect(store.getState()).toEqual({ profiles: [], lastActiveProfileId: null, lastActiveSurface: null });
   });
 
   it("creates and persists a profile", () => {
@@ -49,7 +49,8 @@ describe("FileProfileStore", () => {
           updatedAt: "2026-05-08T01:00:00.000Z"
         }
       ],
-      lastActiveProfileId: profile.id
+      lastActiveProfileId: profile.id,
+      lastActiveSurface: { profileId: profile.id, appKind: "mail" }
     });
   });
 
@@ -64,7 +65,42 @@ describe("FileProfileStore", () => {
     const store = makeStore();
     writeFileSync(store.filePath, JSON.stringify({ profiles: [] }), "utf8");
 
-    expect(store.getState()).toEqual({ profiles: [], lastActiveProfileId: null });
+    expect(store.getState()).toEqual({ profiles: [], lastActiveProfileId: null, lastActiveSurface: null });
+  });
+
+  it("migrates stored profiles with calendar disabled by default", () => {
+    const store = makeStore();
+    writeFileSync(
+      store.filePath,
+      JSON.stringify({
+        profiles: [
+          {
+            id: "work",
+            displayName: "Work",
+            partition: "persist:gmail-profile-work",
+            createdAt: "2026-05-19T00:00:00.000Z",
+            updatedAt: "2026-05-19T00:00:00.000Z"
+          }
+        ],
+        lastActiveProfileId: "work"
+      }),
+      "utf8"
+    );
+
+    expect(store.getState()).toEqual({
+      profiles: [
+        {
+          id: "work",
+          displayName: "Work",
+          partition: "persist:gmail-profile-work",
+          calendarEnabled: false,
+          createdAt: "2026-05-19T00:00:00.000Z",
+          updatedAt: "2026-05-19T00:00:00.000Z"
+        }
+      ],
+      lastActiveProfileId: "work",
+      lastActiveSurface: { profileId: "work", appKind: "mail" }
+    });
   });
 
   it("renames a profile", () => {
@@ -83,7 +119,7 @@ describe("FileProfileStore", () => {
 
     store.deleteProfile(profile.id);
 
-    expect(store.getState()).toEqual({ profiles: [], lastActiveProfileId: null });
+    expect(store.getState()).toEqual({ profiles: [], lastActiveProfileId: null, lastActiveSurface: null });
   });
 
   it("sets last active profile", () => {
@@ -93,6 +129,62 @@ describe("FileProfileStore", () => {
     store.setLastActiveProfile(profile.id);
 
     expect(store.getState().lastActiveProfileId).toBe(profile.id);
+    expect(store.getState().lastActiveSurface).toEqual({ profileId: profile.id, appKind: "mail" });
+  });
+
+  it("enables and disables calendar for a profile", () => {
+    const store = makeStore();
+    const profile = store.createProfile("Work", "2026-05-19T00:00:00.000Z");
+
+    expect(store.setProfileCalendarEnabled(profile.id, true, "2026-05-19T01:00:00.000Z").calendarEnabled).toBe(true);
+    expect(store.setProfileCalendarEnabled(profile.id, false, "2026-05-19T02:00:00.000Z").calendarEnabled).toBe(false);
+  });
+
+  it("persists the last active surface", () => {
+    const store = makeStore();
+    const profile = store.createProfile("Work", "2026-05-19T00:00:00.000Z");
+
+    store.setProfileCalendarEnabled(profile.id, true, "2026-05-19T01:00:00.000Z");
+    store.setLastActiveSurface({ profileId: profile.id, appKind: "calendar" });
+
+    const reloaded = new FileProfileStore(store.filePath);
+    expect(reloaded.getState().lastActiveProfileId).toBe(profile.id);
+    expect(reloaded.getState().lastActiveSurface).toEqual({ profileId: profile.id, appKind: "calendar" });
+  });
+
+  it("falls back to mail when disabling the active calendar surface", () => {
+    const store = makeStore();
+    const profile = store.createProfile("Work", "2026-05-19T00:00:00.000Z");
+    store.setProfileCalendarEnabled(profile.id, true);
+    store.setLastActiveSurface({ profileId: profile.id, appKind: "calendar" });
+
+    store.setProfileCalendarEnabled(profile.id, false);
+
+    expect(store.getState().lastActiveSurface).toEqual({ profileId: profile.id, appKind: "mail" });
+  });
+
+  it("falls back to mail when stored calendar surface is disabled", () => {
+    const store = makeStore();
+    writeFileSync(
+      store.filePath,
+      JSON.stringify({
+        profiles: [
+          {
+            id: "work",
+            displayName: "Work",
+            partition: "persist:gmail-profile-work",
+            calendarEnabled: false,
+            createdAt: "2026-05-19T00:00:00.000Z",
+            updatedAt: "2026-05-19T00:00:00.000Z"
+          }
+        ],
+        lastActiveProfileId: "work",
+        lastActiveSurface: { profileId: "work", appKind: "calendar" }
+      }),
+      "utf8"
+    );
+
+    expect(store.getState().lastActiveSurface).toEqual({ profileId: "work", appKind: "mail" });
   });
 
   it("rejects creating more than five profiles", () => {

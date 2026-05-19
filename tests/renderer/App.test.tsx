@@ -10,6 +10,7 @@ const workProfile: GmailProfile = {
   partition: "persist:gmail-profile-profile_1",
   email: "gr8woo@zigbang.com",
   avatarUrl: "https://lh3.googleusercontent.com/a/work-avatar",
+  calendarEnabled: false,
   createdAt: "2026-05-08T00:00:00.000Z",
   updatedAt: "2026-05-08T00:00:00.000Z"
 };
@@ -19,12 +20,23 @@ const personalProfile: GmailProfile = {
   displayName: "Personal",
   partition: "persist:gmail-profile-profile_2",
   email: "gr8wooya@gmail.com",
+  calendarEnabled: false,
   createdAt: "2026-05-08T00:00:00.000Z",
   updatedAt: "2026-05-08T00:00:00.000Z"
 };
 
-function installApi(state: ProfileState) {
-  let currentState = state;
+type TestProfileState = Omit<ProfileState, "lastActiveSurface"> & Partial<Pick<ProfileState, "lastActiveSurface">>;
+
+function normalizeTestProfileState(state: TestProfileState): ProfileState {
+  return {
+    ...state,
+    lastActiveSurface:
+      state.lastActiveSurface ?? (state.lastActiveProfileId ? { profileId: state.lastActiveProfileId, appKind: "mail" } : null)
+  };
+}
+
+function installApi(state: TestProfileState) {
+  let currentState = normalizeTestProfileState(state);
   let profilesChangedCallback: (() => void) | null = null;
   const claudeStatus: ClaudeCodeStatus = {
     installed: true,
@@ -58,7 +70,7 @@ function installApi(state: ProfileState) {
     getProfileState: vi.fn().mockImplementation(() => Promise.resolve(currentState)),
     createProfile: vi.fn().mockImplementation((displayName: string) => {
       const profile = { ...workProfile, displayName: displayName.trim() };
-      currentState = { profiles: [profile], lastActiveProfileId: profile.id };
+      currentState = normalizeTestProfileState({ profiles: [profile], lastActiveProfileId: profile.id });
       return Promise.resolve(profile);
     }),
     renameProfile: vi.fn().mockResolvedValue(workProfile),
@@ -78,8 +90,8 @@ function installApi(state: ProfileState) {
         profilesChangedCallback = null;
       };
     }),
-    emitProfilesChanged(nextState: ProfileState) {
-      currentState = nextState;
+    emitProfilesChanged(nextState: TestProfileState) {
+      currentState = normalizeTestProfileState(nextState);
       profilesChangedCallback?.();
     }
   };

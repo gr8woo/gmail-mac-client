@@ -1,0 +1,17 @@
+src/main/profileStore.ts
+  h_31472534e8c051 5,9-10,36-37,105-108,110,120-176,210,214-216,219-220,241,257-301
+tests/renderer/App.test.tsx
+  h_31472534e8c051 13,23,28-39,73,93-94
+tests/unit/profileStore.test.ts
+  h_31472534e8c051 24,52-53,68-103,122,132-187
+---
+{
+  "schema_version": "zax-attestation/1.1.0",
+  "base_commit_sha": "079eec4d99f7b4efa3f07f1696606be574b831fe",
+  "prompts": {},
+  "humans": {
+    "h_31472534e8c051": {
+      "author": "gr8wooya@gmail.com"
+    }
+  }
+}

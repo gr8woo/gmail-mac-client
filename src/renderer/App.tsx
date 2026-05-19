@@ -7,7 +7,7 @@ import { FirstRun } from "./components/FirstRun";
 import { SettingsPage } from "./components/SettingsPage";
 import { ProfileSwitcher } from "./components/ProfileSwitcher";
 import { StatusBar } from "./components/StatusBar";
-import type { ProfileState } from "../shared/profile";
+import type { ActiveGoogleSurface, ProfileState } from "../shared/profile";
 import type { AgentProviderId, AgentProviderStatus } from "../shared/agent";
 
 const APP_BAR_HEIGHT = 44;
@@ -126,16 +126,20 @@ export function App() {
     await refreshState();
   }
 
-  async function switchProfile(profileId: string) {
-    if (!profileId || profileId === state?.lastActiveProfileId) {
+  const activeSurface = state?.lastActiveSurface ?? (
+    state?.lastActiveProfileId ? { profileId: state.lastActiveProfileId, appKind: "mail" as const } : null
+  );
+
+  async function switchSurface(surface: ActiveGoogleSurface) {
+    if (!surface.profileId || (surface.profileId === activeSurface?.profileId && surface.appKind === activeSurface.appKind)) {
       return;
     }
 
     try {
-      await gmailClient.switchProfile(profileId);
+      await gmailClient.switchSurface(surface);
       await refreshState();
     } catch (caught) {
-      setStatus(caught instanceof Error ? caught.message : "Unable to switch profile");
+      setStatus(caught instanceof Error ? caught.message : "Unable to switch view");
       await refreshState({ clearStatus: false }).catch(() => undefined);
     }
   }
@@ -163,7 +167,7 @@ export function App() {
 
   async function refreshGmailView() {
     try {
-      await gmailClient.refreshGmailView();
+      await gmailClient.refreshCurrentSurface();
     } catch (caught) {
       setStatus(caught instanceof Error ? caught.message : "Unable to refresh Gmail");
     }
@@ -201,8 +205,8 @@ export function App() {
       <header className="app-bar">
         <ProfileSwitcher
           profiles={state.profiles}
-          activeProfileId={state.lastActiveProfileId}
-          onSwitchProfile={switchProfile}
+          activeSurface={activeSurface}
+          onSwitchSurface={switchSurface}
         />
         <StatusBar message={status} />
         <button

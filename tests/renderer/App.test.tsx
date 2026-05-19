@@ -25,6 +25,18 @@ const personalProfile: GmailProfile = {
   updatedAt: "2026-05-08T00:00:00.000Z"
 };
 
+function makeProfile(overrides: Partial<GmailProfile> = {}): GmailProfile {
+  return {
+    id: "profile",
+    displayName: "Profile",
+    partition: "persist:gmail-profile-profile",
+    calendarEnabled: false,
+    createdAt: "2026-05-08T00:00:00.000Z",
+    updatedAt: "2026-05-08T00:00:00.000Z",
+    ...overrides
+  };
+}
+
 type TestProfileState = Omit<ProfileState, "lastActiveSurface"> & Partial<Pick<ProfileState, "lastActiveSurface">>;
 
 function normalizeTestProfileState(state: TestProfileState): ProfileState {
@@ -76,7 +88,9 @@ function installApi(state: TestProfileState) {
     renameProfile: vi.fn().mockResolvedValue(workProfile),
     deleteProfile: vi.fn().mockResolvedValue(undefined),
     switchProfile: vi.fn().mockResolvedValue(undefined),
+    switchSurface: vi.fn().mockResolvedValue(undefined),
     refreshGmailView: vi.fn().mockResolvedValue(undefined),
+    refreshCurrentSurface: vi.fn().mockResolvedValue(undefined),
     setChromeHeight: vi.fn().mockResolvedValue(undefined),
     setGmailViewVisible: vi.fn().mockResolvedValue(undefined),
     setGmailRightInset: vi.fn().mockResolvedValue(undefined),
@@ -138,8 +152,8 @@ describe("App", () => {
 
     render(<App />);
 
-    expect(await screen.findByRole("button", { name: "Switch to gr8woo@zigbang.com" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Switch to gr8wooya@gmail.com" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Switch to gr8woo@zigbang.com Gmail" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Switch to gr8wooya@gmail.com Gmail" })).toBeInTheDocument();
     expect(screen.queryByRole("combobox", { name: "Current profile" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Manage profiles" })).not.toBeInTheDocument();
     expect(screen.getByRole("banner")).toHaveClass("app-bar");
@@ -153,9 +167,49 @@ describe("App", () => {
 
     render(<App />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Switch to gr8wooya@gmail.com" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Switch to gr8wooya@gmail.com Gmail" }));
 
-    await waitFor(() => expect(api.switchProfile).toHaveBeenCalledWith("profile_2"));
+    await waitFor(() => expect(api.switchSurface).toHaveBeenCalledWith({ profileId: "profile_2", appKind: "mail" }));
+  });
+
+  it("shows calendar profile buttons only for calendar-enabled profiles", async () => {
+    installApi({
+      profiles: [
+        makeProfile({ id: "work", displayName: "Work", partition: "persist:gmail-profile-work", calendarEnabled: true }),
+        makeProfile({
+          id: "personal",
+          displayName: "Personal",
+          partition: "persist:gmail-profile-personal",
+          calendarEnabled: false
+        })
+      ],
+      lastActiveProfileId: "work",
+      lastActiveSurface: { profileId: "work", appKind: "mail" }
+    });
+
+    render(<App />);
+
+    expect(await screen.findByRole("button", { name: "Switch to Work Gmail" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Switch to Work Calendar" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Switch to Personal Gmail" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Switch to Personal Calendar" })).not.toBeInTheDocument();
+  });
+
+  it("switches to the selected calendar surface", async () => {
+    const api = installApi({
+      profiles: [
+        makeProfile({ id: "work", displayName: "Work", partition: "persist:gmail-profile-work", calendarEnabled: true })
+      ],
+      lastActiveProfileId: "work",
+      lastActiveSurface: { profileId: "work", appKind: "mail" }
+    });
+
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: "Switch to Work Calendar" }));
+
+    await waitFor(() => {
+      expect(api.switchSurface).toHaveBeenCalledWith({ profileId: "work", appKind: "calendar" });
+    });
   });
 
   it("refreshes the current Gmail view from the app bar", async () => {
@@ -168,7 +222,7 @@ describe("App", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Refresh Gmail" }));
 
-    await waitFor(() => expect(api.refreshGmailView).toHaveBeenCalled());
+    await waitFor(() => expect(api.refreshCurrentSurface).toHaveBeenCalled());
   });
 
   it("navigates to a settings page and hides the Gmail view", async () => {
@@ -441,11 +495,11 @@ describe("App", () => {
       lastActiveProfileId: "profile_1",
       profiles: [workProfile, personalProfile]
     });
-    api.switchProfile.mockRejectedValueOnce(new Error("Switch failed"));
+    api.switchSurface.mockRejectedValueOnce(new Error("Switch failed"));
 
     render(<App />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Switch to gr8wooya@gmail.com" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Switch to gr8wooya@gmail.com Gmail" }));
 
     expect(await screen.findByRole("status")).toHaveTextContent("Switch failed");
   });
@@ -475,13 +529,13 @@ describe("App", () => {
 
     render(<App />);
 
-    expect(await screen.findByRole("button", { name: "Switch to Work" })).toHaveTextContent("W");
+    expect(await screen.findByRole("button", { name: "Switch to Work Gmail" })).toHaveTextContent("W");
 
     api.emitProfilesChanged({
       lastActiveProfileId: "profile_1",
       profiles: [workProfile]
     });
 
-    expect(await screen.findByRole("button", { name: "Switch to gr8woo@zigbang.com" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Switch to gr8woo@zigbang.com Gmail" })).toBeInTheDocument();
   });
 });

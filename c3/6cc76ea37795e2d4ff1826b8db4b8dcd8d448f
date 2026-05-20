@@ -1,0 +1,23 @@
+src/main/webAuthn.ts
+  s_05877ec738b272::t_68afb31099f6fc 21-22,28
+  s_05877ec738b272::t_75457cf0ad8b90 35
+  s_05877ec738b272::t_7b8d8c2715d503 16
+tests/unit/webAuthn.test.ts
+  s_05877ec738b272::t_be40905526eddd 16,19-21,41,44,56-58,66-67
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "c36cc76ea37795e2d4ff1826b8db4b8dcd8d448f",
+  "prompts": {},
+  "sessions": {
+    "s_05877ec738b272": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e42c7-01bc-7ba3-b45d-e80fa30e4c66",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Glen Lee <gr8wooya@gmail.com>"
+    }
+  }
+}

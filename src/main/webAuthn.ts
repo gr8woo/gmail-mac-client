@@ -13,25 +13,26 @@ export function shouldConfigureMacWebAuthn(
   app: Pick<App, "isPackaged">,
   env: NodeJS.ProcessEnv = process.env
 ): boolean {
-  return app.isPackaged || env[ENABLE_WEB_AUTHN_ENV] === "1";
+  return env[ENABLE_WEB_AUTHN_ENV] === "1";
 }
 
 export function configureMacWebAuthn(
   app: Pick<App, "configureWebAuthn" | "isPackaged">,
-  platform = process.platform
+  platform = process.platform,
+  env: NodeJS.ProcessEnv = process.env
 ): boolean {
   if (platform !== "darwin") {
     return false;
   }
 
-  if (!shouldConfigureMacWebAuthn(app)) {
+  if (!shouldConfigureMacWebAuthn(app, env)) {
     return false;
   }
 
   try {
     app.configureWebAuthn({
       touchID: {
-        keychainAccessGroup: getWebAuthnKeychainAccessGroup(),
+        keychainAccessGroup: getWebAuthnKeychainAccessGroup(env),
         promptReason: "sign in to $1"
       }
     });

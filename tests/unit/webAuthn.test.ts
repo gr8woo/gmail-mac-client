@@ -13,10 +13,12 @@ beforeEach(() => {
 });
 
 describe("configureMacWebAuthn", () => {
-  it("configures Touch ID WebAuthn on macOS", () => {
+  it("configures Touch ID WebAuthn on macOS when explicitly enabled", () => {
     const configureWebAuthn = vi.fn();
 
-    const didConfigure = configureMacWebAuthn({ configureWebAuthn, isPackaged: true }, "darwin");
+    const didConfigure = configureMacWebAuthn({ configureWebAuthn, isPackaged: true }, "darwin", {
+      SIMPLE_GMAIL_CLIENT_ENABLE_WEBAUTHN: "1"
+    });
 
     expect(didConfigure).toBe(true);
     expect(configureWebAuthn).toHaveBeenCalledWith({
@@ -36,10 +38,10 @@ describe("configureMacWebAuthn", () => {
     expect(configureWebAuthn).not.toHaveBeenCalled();
   });
 
-  it("does not configure WebAuthn for unsigned development runs", () => {
+  it("does not configure WebAuthn unless explicitly enabled", () => {
     const configureWebAuthn = vi.fn();
 
-    const didConfigure = configureMacWebAuthn({ configureWebAuthn, isPackaged: false }, "darwin");
+    const didConfigure = configureMacWebAuthn({ configureWebAuthn, isPackaged: true }, "darwin");
 
     expect(didConfigure).toBe(false);
     expect(configureWebAuthn).not.toHaveBeenCalled();
@@ -51,7 +53,9 @@ describe("configureMacWebAuthn", () => {
       throw error;
     });
 
-    const didConfigure = configureMacWebAuthn({ configureWebAuthn, isPackaged: true }, "darwin");
+    const didConfigure = configureMacWebAuthn({ configureWebAuthn, isPackaged: true }, "darwin", {
+      SIMPLE_GMAIL_CLIENT_ENABLE_WEBAUTHN: "1"
+    });
 
     expect(didConfigure).toBe(false);
     expect(consoleWarnSpy).toHaveBeenCalledWith("Failed to configure macOS WebAuthn platform authenticator.", error);
@@ -59,8 +63,8 @@ describe("configureMacWebAuthn", () => {
 });
 
 describe("shouldConfigureMacWebAuthn", () => {
-  it("configures in packaged builds", () => {
-    expect(shouldConfigureMacWebAuthn({ isPackaged: true }, {})).toBe(true);
+  it("does not configure in packaged builds by default", () => {
+    expect(shouldConfigureMacWebAuthn({ isPackaged: true }, {})).toBe(false);
   });
 
   it("configures in development only when explicitly enabled", () => {

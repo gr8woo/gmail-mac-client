@@ -1,0 +1,17 @@
+tests/renderer/App.test.tsx
+  h_31472534e8c051 11,22,176-177,191,275-276,580,617
+tests/unit/gmailViewController.test.ts
+  h_31472534e8c051 306,310
+tests/unit/profileStore.test.ts
+  h_31472534e8c051 236,248,260,268,273
+---
+{
+  "schema_version": "zax-attestation/1.1.0",
+  "base_commit_sha": "28e80c025c39ca59cbbec5b2b4879a91449b4525",
+  "prompts": {},
+  "humans": {
+    "h_31472534e8c051": {
+      "author": "gr8wooya@gmail.com"
+    }
+  }
+}

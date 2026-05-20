@@ -8,7 +8,7 @@ const workProfile: GmailProfile = {
   id: "profile_1",
   displayName: "Work",
   partition: "persist:gmail-profile-profile_1",
-  email: "gr8woo@zigbang.com",
+  email: "work.user@example.com",
   avatarUrl: "https://lh3.googleusercontent.com/a/work-avatar",
   calendarEnabled: false,
   createdAt: "2026-05-08T00:00:00.000Z",
@@ -19,7 +19,7 @@ const personalProfile: GmailProfile = {
   id: "profile_2",
   displayName: "Personal",
   partition: "persist:gmail-profile-profile_2",
-  email: "gr8wooya@gmail.com",
+  email: "personal.user@example.com",
   calendarEnabled: false,
   createdAt: "2026-05-08T00:00:00.000Z",
   updatedAt: "2026-05-08T00:00:00.000Z"
@@ -173,8 +173,8 @@ describe("App", () => {
 
     render(<App />);
 
-    expect(await screen.findByRole("button", { name: "Switch to gr8woo@zigbang.com Gmail" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Switch to gr8wooya@gmail.com Gmail" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Switch to work.user@example.com Gmail" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Switch to personal.user@example.com Gmail" })).toBeInTheDocument();
     expect(screen.queryByRole("combobox", { name: "Current profile" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Manage profiles" })).not.toBeInTheDocument();
     expect(screen.getByRole("banner")).toHaveClass("app-bar");
@@ -188,7 +188,7 @@ describe("App", () => {
 
     render(<App />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Switch to gr8wooya@gmail.com Gmail" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Switch to personal.user@example.com Gmail" }));
 
     await waitFor(() => expect(api.switchSurface).toHaveBeenCalledWith({ profileId: "profile_2", appKind: "mail" }));
   });
@@ -272,8 +272,8 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: "테마" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "AI 연결" })).toBeInTheDocument();
     expect(screen.getByText("메일 계정")).toBeInTheDocument();
-    expect(screen.getByText("gr8woo@zigbang.com")).toBeInTheDocument();
-    expect(screen.getByText("gr8wooya@gmail.com")).toBeInTheDocument();
+    expect(screen.getByText("work.user@example.com")).toBeInTheDocument();
+    expect(screen.getByText("personal.user@example.com")).toBeInTheDocument();
     expect(screen.getByText("기본값")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "계정 추가" })).toBeInTheDocument();
     expect(screen.getByLabelText("Profile management")).toHaveAttribute("tabindex", "0");
@@ -577,7 +577,7 @@ describe("App", () => {
 
     render(<App />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Switch to gr8wooya@gmail.com Gmail" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Switch to personal.user@example.com Gmail" }));
 
     expect(await screen.findByRole("status")).toHaveTextContent("Switch failed");
   });
@@ -614,6 +614,6 @@ describe("App", () => {
       profiles: [workProfile]
     });
 
-    expect(await screen.findByRole("button", { name: "Switch to gr8woo@zigbang.com Gmail" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Switch to work.user@example.com Gmail" })).toBeInTheDocument();
   });
 });

@@ -303,11 +303,11 @@ describe("parseGoogleAccountMetadata", () => {
   it("extracts the signed-in Gmail account email and avatar URL", () => {
     expect(
       parseGoogleAccountMetadata({
-        label: "Google 계정: Glen Lee (gr8woo@zigbang.com)",
+        label: "Google 계정: Example User (work.user@example.com)",
         imageUrl: "https://lh3.googleusercontent.com/a/work-avatar=s96-c"
       })
     ).toEqual({
-      email: "gr8woo@zigbang.com",
+      email: "work.user@example.com",
       avatarUrl: "https://lh3.googleusercontent.com/a/work-avatar=s96-c"
     });
   });

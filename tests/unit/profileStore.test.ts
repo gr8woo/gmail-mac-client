@@ -233,7 +233,7 @@ describe("FileProfileStore", () => {
             id: "profile_1",
             displayName: "Work",
             partition: "persist:gmail-profile-profile_1",
-            email: "gr8woo@zigbang.com",
+            email: "work.user@example.com",
             avatarUrl: "https://lh3.googleusercontent.com/a/work-avatar",
             createdAt: "2026-05-08T00:00:00.000Z",
             updatedAt: "2026-05-08T01:00:00.000Z"
@@ -245,7 +245,7 @@ describe("FileProfileStore", () => {
     );
 
     expect(store.getState().profiles[0]).toMatchObject({
-      email: "gr8woo@zigbang.com",
+      email: "work.user@example.com",
       avatarUrl: "https://lh3.googleusercontent.com/a/work-avatar"
     });
   });
@@ -257,7 +257,7 @@ describe("FileProfileStore", () => {
     const updated = store.updateProfileMetadata(
       profile.id,
       {
-        email: "gr8woo@zigbang.com",
+        email: "work.user@example.com",
         avatarUrl: "https://lh3.googleusercontent.com/a/work-avatar"
       },
       "2026-05-08T01:00:00.000Z"
@@ -265,12 +265,12 @@ describe("FileProfileStore", () => {
 
     expect(updated).toMatchObject({
       displayName: "Work",
-      email: "gr8woo@zigbang.com",
+      email: "work.user@example.com",
       avatarUrl: "https://lh3.googleusercontent.com/a/work-avatar",
       updatedAt: "2026-05-08T01:00:00.000Z"
     });
     expect(store.getState().profiles[0]).toMatchObject({
-      email: "gr8woo@zigbang.com",
+      email: "work.user@example.com",
       avatarUrl: "https://lh3.googleusercontent.com/a/work-avatar"
     });
   });

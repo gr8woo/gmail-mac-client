@@ -1,5 +1,5 @@
 export type OutlookShortcutAction = "compose" | "reply" | "replyAll" | "forward" | "archive" | "delete" | "refresh";
-export const outlookDeleteAccelerators = ["Backspace", "Delete"] as const;
+export const outlookDeleteAccelerators: readonly string[] = [];
 
 interface OutlookShortcutInput {
   type?: string;
@@ -34,16 +34,6 @@ export function getOutlookShortcutAction(input: OutlookShortcutInput): OutlookSh
 
   if (key === "f5") {
     return "refresh";
-  }
-
-  if (!hasCommandModifier) {
-    if (key === "backspace" || key === "delete") {
-      return "delete";
-    }
-
-    if (key === "e") {
-      return "archive";
-    }
   }
 
   if (!hasCommandModifier) {

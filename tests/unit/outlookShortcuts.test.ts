@@ -7,8 +7,8 @@ import {
 } from "../../src/main/outlookShortcuts";
 
 describe("getOutlookShortcutAction", () => {
-  it("exports native accelerators for Outlook-style delete", () => {
-    expect(outlookDeleteAccelerators).toEqual(["Backspace", "Delete"]);
+  it("does not register native delete accelerators that can steal editor typing", () => {
+    expect(outlookDeleteAccelerators).toEqual([]);
   });
 
   it("maps Outlook compose shortcuts to Gmail compose", () => {
@@ -29,14 +29,14 @@ describe("getOutlookShortcutAction", () => {
     expect(getOutlookShortcutAction({ type: "keyDown", key: "f", meta: true })).toBeNull();
   });
 
-  it("maps Outlook delete keys to Gmail delete", () => {
-    expect(getOutlookShortcutAction({ type: "keyDown", key: "Backspace" })).toBe("delete");
-    expect(getOutlookShortcutAction({ type: "keyDown", key: "Delete" })).toBe("delete");
+  it("lets plain delete keys pass through to Gmail editors", () => {
+    expect(getOutlookShortcutAction({ type: "keyDown", key: "Backspace" })).toBeNull();
+    expect(getOutlookShortcutAction({ type: "keyDown", key: "Delete" })).toBeNull();
   });
 
-  it("maps Gmail archive key to archive", () => {
-    expect(getOutlookShortcutAction({ type: "keyDown", key: "e" })).toBe("archive");
-    expect(getOutlookShortcutAction({ type: "keyDown", key: "E" })).toBe("archive");
+  it("lets plain letter keys pass through to Gmail editors", () => {
+    expect(getOutlookShortcutAction({ type: "keyDown", key: "e" })).toBeNull();
+    expect(getOutlookShortcutAction({ type: "keyDown", key: "E" })).toBeNull();
   });
 
   it("maps F5 to refresh", () => {

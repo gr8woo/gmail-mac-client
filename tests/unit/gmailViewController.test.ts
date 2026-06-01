@@ -164,27 +164,32 @@ describe("GmailViewController", () => {
     expect(electronMock.views[0]?.webContents.executeJavaScript).not.toHaveBeenCalled();
   });
 
-  it("handles the archive key inside Gmail editors without replaying a synthetic key event", async () => {
+  it("lets the archive letter pass through without async replay", async () => {
     const { controller } = createController();
     const event = { preventDefault: vi.fn() };
 
     await controller.switchToSurface({ profileId: "work", appKind: "mail" });
     const mailWebContents = electronMock.views[0]!.webContents;
-    mailWebContents.executeJavaScript.mockImplementation(async (script: string) => {
-      if (script.includes("applyEditableText")) {
-        return { status: "handled-editable" };
-      }
 
-      return { status: "editing" };
-    });
+    expect(controller.handleShortcutInput(event as never, { type: "keyDown", key: "e" } as never)).toBe(false);
 
-    expect(controller.handleShortcutInput(event as never, { type: "keyDown", key: "e" } as never)).toBe(true);
-    await vi.waitFor(() => {
-      expect(mailWebContents.executeJavaScript).toHaveBeenCalledTimes(1);
-    });
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(event.preventDefault).not.toHaveBeenCalled();
+    expect(mailWebContents.executeJavaScript).not.toHaveBeenCalled();
+    expect(mailWebContents.sendInputEvent).not.toHaveBeenCalled();
+  });
 
-    expect(event.preventDefault).toHaveBeenCalledTimes(1);
+  it("lets delete keys pass through without async replay", async () => {
+    const { controller } = createController();
+    const event = { preventDefault: vi.fn() };
+
+    await controller.switchToSurface({ profileId: "work", appKind: "mail" });
+    const mailWebContents = electronMock.views[0]!.webContents;
+
+    expect(controller.handleShortcutInput(event as never, { type: "keyDown", key: "Backspace" } as never)).toBe(false);
+    expect(controller.handleShortcutInput(event as never, { type: "keyDown", key: "Delete" } as never)).toBe(false);
+
+    expect(event.preventDefault).not.toHaveBeenCalled();
+    expect(mailWebContents.executeJavaScript).not.toHaveBeenCalled();
     expect(mailWebContents.sendInputEvent).not.toHaveBeenCalled();
   });
 

@@ -34,6 +34,7 @@ export function App() {
     }
   ]);
   const [availableUpdate, setAvailableUpdate] = useState<AvailableUpdate | null>(null);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const [isDownloadingUpdate, setIsDownloadingUpdate] = useState(false);
   const [status, setStatus] = useState<string | null>("Loading profiles...");
 
@@ -46,11 +47,13 @@ export function App() {
   }
 
   useEffect(() => {
-    void refreshState().catch((caught) => {
+    void (async () => {
+      await refreshState();
+      await checkForAppUpdate({ showErrors: true });
+    })().catch((caught) => {
       setStatus(caught instanceof Error ? caught.message : "Unable to load profiles");
     });
     void refreshAgentProviders().catch(() => undefined);
-    void checkForAppUpdate().catch(() => undefined);
   }, []);
 
   useEffect(() => {
@@ -104,9 +107,31 @@ export function App() {
     selectAvailableProvider(providers);
   }
 
-  async function checkForAppUpdate() {
-    const update = await gmailClient.checkForUpdate();
-    setAvailableUpdate(update.available ? update : null);
+  async function checkForAppUpdate(options: { showStatus?: boolean; showErrors?: boolean } = {}) {
+    setIsCheckingUpdate(true);
+
+    if (options.showStatus) {
+      setStatus("Checking for updates...");
+    }
+
+    try {
+      const update = await gmailClient.checkForUpdate();
+      setAvailableUpdate(update.available ? update : null);
+
+      if (options.showStatus) {
+        setStatus(
+          update.available
+            ? `Update ${update.latestVersion} is available.`
+            : `Simple Gmail Client is up to date (${update.currentVersion}).`
+        );
+      }
+    } catch (caught) {
+      if (options.showErrors ?? options.showStatus) {
+        setStatus(caught instanceof Error ? caught.message : "Unable to check for updates");
+      }
+    } finally {
+      setIsCheckingUpdate(false);
+    }
   }
 
   function selectAvailableProvider(providers: AgentProviderStatus[]) {
@@ -216,6 +241,15 @@ export function App() {
     }
   }
 
+  async function handleUpdateButtonClick() {
+    if (availableUpdate) {
+      await installUpdate();
+      return;
+    }
+
+    await checkForAppUpdate({ showStatus: true, showErrors: true });
+  }
+
   if (!state) {
     return <StatusBar message={status} />;
   }
@@ -254,18 +288,18 @@ export function App() {
           onSwitchSurface={switchSurface}
         />
         <StatusBar message={status} />
-        {availableUpdate ? (
-          <button
-            type="button"
-            className="settings-button update-button"
-            disabled={isDownloadingUpdate}
-            onClick={() => void installUpdate()}
-            title={`Install update ${availableUpdate.latestVersion}`}
-          >
-            <Download className="settings-icon" aria-hidden="true" />
-            <span className="visually-hidden">Install update {availableUpdate.latestVersion}</span>
-          </button>
-        ) : null}
+        <button
+          type="button"
+          className="settings-button update-button"
+          disabled={isDownloadingUpdate || isCheckingUpdate}
+          onClick={() => void handleUpdateButtonClick()}
+          title={availableUpdate ? `Install update ${availableUpdate.latestVersion}` : "Check for updates"}
+        >
+          <Download className="settings-icon" aria-hidden="true" />
+          <span className="visually-hidden">
+            {availableUpdate ? `Install update ${availableUpdate.latestVersion}` : "Check for updates"}
+          </span>
+        </button>
         <button
           type="button"
           className="settings-button"

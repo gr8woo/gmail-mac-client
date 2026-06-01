@@ -295,6 +295,37 @@ describe("App", () => {
     expect(await screen.findByRole("button", { name: "Install update 0.1.2" })).toBeInTheDocument();
   });
 
+  it("shows a manual update check button when no update is available", async () => {
+    const api = installApi({
+      lastActiveProfileId: "profile_1",
+      profiles: [workProfile]
+    });
+
+    render(<App />);
+
+    const updateButton = await screen.findByRole("button", { name: "Check for updates" });
+    expect(updateButton).toBeInTheDocument();
+
+    fireEvent.click(updateButton);
+
+    await waitFor(() => expect(api.checkForUpdate).toHaveBeenCalledTimes(2));
+    expect(await screen.findByRole("status")).toHaveTextContent("Simple Gmail Client is up to date (0.1.1).");
+  });
+
+  it("shows update check failures in the status bar", async () => {
+    const api = installApi({
+      lastActiveProfileId: "profile_1",
+      profiles: [workProfile]
+    });
+    api.checkForUpdate.mockRejectedValueOnce(new Error("Unable to check for updates: 403"));
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("status")).toHaveTextContent("Unable to check for updates: 403");
+    });
+  });
+
   it("downloads and opens the update from the app bar", async () => {
     const api = installApi({
       lastActiveProfileId: "profile_1",

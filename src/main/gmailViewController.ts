@@ -99,7 +99,6 @@ export class GmailViewController {
   private currentSurface: ActiveGoogleSurface | null = null;
   private currentViewAttached = false;
   private gmailViewVisible = true;
-  private forwardingEditingInput = false;
   private readonly surfaceViews = new Map<string, WebContentsView>();
   private switchToken = 0;
   private topInset = APP_BAR_HEIGHT;
@@ -331,7 +330,7 @@ export class GmailViewController {
   }
 
   handleShortcutInput(event: Event, input: Input): boolean {
-    if (this.forwardingEditingInput || this.currentSurface?.appKind !== "mail") {
+    if (this.currentSurface?.appKind !== "mail") {
       return false;
     }
 
@@ -489,24 +488,7 @@ export class GmailViewController {
       return;
     }
 
-    await triggerGmailAction(webContents, action, originalKey, (key) => {
-      this.forwardEditingKey(webContents, key);
-    });
-  }
-
-  private forwardEditingKey(webContents: WebContents, originalKey: string | undefined): void {
-    if (!originalKey || webContents.isDestroyed()) {
-      return;
-    }
-
-    this.forwardingEditingInput = true;
-
-    try {
-      webContents.sendInputEvent({ type: "keyDown", keyCode: originalKey });
-      webContents.sendInputEvent({ type: "keyUp", keyCode: originalKey });
-    } finally {
-      this.forwardingEditingInput = false;
-    }
+    await triggerGmailAction(webContents, action, originalKey);
   }
 
   private restorePrimaryGoogleAppViewIfNeeded(
@@ -705,8 +687,7 @@ function normalizeGmailBody(value: string): string {
 async function triggerGmailAction(
   webContents: WebContents,
   action: OutlookShortcutAction,
-  originalKey: string | undefined,
-  forwardEditingKey: (key: string | undefined) => void
+  originalKey: string | undefined
 ): Promise<void> {
   if (webContents.isDestroyed()) {
     return;
@@ -714,15 +695,6 @@ async function triggerGmailAction(
 
   if (action === "refresh") {
     webContents.reload();
-    return;
-  }
-
-  const guard = (await webContents.executeJavaScript(createGmailShortcutGuardScript(action), true)) as unknown;
-  if (isGmailActionStatus(guard, "editing")) {
-    if (process.env.GMAIL_CLIENT_DEBUG_SHORTCUTS === "1") {
-      console.error("[gmail-shortcut] forward editing key", JSON.stringify({ action, originalKey }));
-    }
-    forwardEditingKey(originalKey);
     return;
   }
 
@@ -757,6 +729,11 @@ async function triggerGmailAction(
     const keyCode = getGmailShortcutKey(action);
     webContents.sendInputEvent({ type: "keyDown", keyCode });
     webContents.sendInputEvent({ type: "keyUp", keyCode });
+    return;
+  }
+
+  const guard = (await webContents.executeJavaScript(createGmailShortcutGuardScript(action), true)) as unknown;
+  if (isGmailActionStatus(guard, "editing")) {
     return;
   }
 

@@ -164,6 +164,50 @@ describe("GmailViewController", () => {
     expect(electronMock.views[0]?.webContents.executeJavaScript).not.toHaveBeenCalled();
   });
 
+  it("handles the archive key inside Gmail editors without replaying a synthetic key event", async () => {
+    const { controller } = createController();
+    const event = { preventDefault: vi.fn() };
+
+    await controller.switchToSurface({ profileId: "work", appKind: "mail" });
+    const mailWebContents = electronMock.views[0]!.webContents;
+    mailWebContents.executeJavaScript.mockImplementation(async (script: string) => {
+      if (script.includes("applyEditableText")) {
+        return { status: "handled-editable" };
+      }
+
+      return { status: "editing" };
+    });
+
+    expect(controller.handleShortcutInput(event as never, { type: "keyDown", key: "e" } as never)).toBe(true);
+    await vi.waitFor(() => {
+      expect(mailWebContents.executeJavaScript).toHaveBeenCalledTimes(1);
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(event.preventDefault).toHaveBeenCalledTimes(1);
+    expect(mailWebContents.sendInputEvent).not.toHaveBeenCalled();
+  });
+
+  it("does not replay modified shortcuts as plain text inside Gmail editors", async () => {
+    const { controller } = createController();
+    const event = { preventDefault: vi.fn() };
+
+    await controller.switchToSurface({ profileId: "work", appKind: "mail" });
+    const mailWebContents = electronMock.views[0]!.webContents;
+    mailWebContents.executeJavaScript.mockResolvedValue({ status: "editing" });
+
+    expect(controller.handleShortcutInput(event as never, { type: "keyDown", key: "r", control: true } as never)).toBe(
+      true
+    );
+    await vi.waitFor(() => {
+      expect(mailWebContents.executeJavaScript).toHaveBeenCalledTimes(1);
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(event.preventDefault).toHaveBeenCalledTimes(1);
+    expect(mailWebContents.sendInputEvent).not.toHaveBeenCalled();
+  });
+
   it("stores a defensive copy of the active surface", async () => {
     const { controller } = createController();
     const surface: ActiveGoogleSurface = { profileId: "work", appKind: "mail" };

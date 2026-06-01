@@ -1,0 +1,15 @@
+src/main/gmailViewController.ts
+  h_31472534e8c051 333,491,690,735-739
+tests/unit/gmailViewController.test.ts
+  h_31472534e8c051 167-210
+---
+{
+  "schema_version": "zax-attestation/1.1.0",
+  "base_commit_sha": "fe7db132adfc14d94c39dd18ec5e6dafb29823d5",
+  "prompts": {},
+  "humans": {
+    "h_31472534e8c051": {
+      "author": "gr8wooya@gmail.com"
+    }
+  }
+}

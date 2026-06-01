@@ -1,0 +1,19 @@
+package-lock.json
+  h_31472534e8c051 3,9
+package.json
+  h_31472534e8c051 3
+src/renderer/App.tsx
+  h_31472534e8c051 37,50-53,110-134,244-252,291-302
+tests/renderer/App.test.tsx
+  h_31472534e8c051 298-328
+---
+{
+  "schema_version": "zax-attestation/1.1.0",
+  "base_commit_sha": "dd575264de0a82f9db912ef025e47a5c7545d5ed",
+  "prompts": {},
+  "humans": {
+    "h_31472534e8c051": {
+      "author": "gr8wooya@gmail.com"
+    }
+  }
+}

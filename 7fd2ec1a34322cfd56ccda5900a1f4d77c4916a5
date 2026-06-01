@@ -1,0 +1,15 @@
+package-lock.json
+  h_31472534e8c051 3,9
+package.json
+  h_31472534e8c051 3
+---
+{
+  "schema_version": "zax-attestation/1.1.0",
+  "base_commit_sha": "7fd2ec1a34322cfd56ccda5900a1f4d77c4916a5",
+  "prompts": {},
+  "humans": {
+    "h_31472534e8c051": {
+      "author": "gr8wooya@gmail.com"
+    }
+  }
+}

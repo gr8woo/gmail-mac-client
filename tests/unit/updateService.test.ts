@@ -42,6 +42,21 @@ function jsonResponse(body: unknown): Response {
   });
 }
 
+function rateLimitResponse(): Response {
+  return new Response(
+    JSON.stringify({
+      message: "API rate limit exceeded"
+    }),
+    {
+      status: 403,
+      headers: {
+        "content-type": "application/json",
+        "x-ratelimit-remaining": "0"
+      }
+    }
+  );
+}
+
 describe("compareVersions", () => {
   it("orders semantic versions with an optional v prefix", () => {
     expect(compareVersions("v0.1.2", "0.1.1")).toBe(1);
@@ -67,7 +82,10 @@ describe("checkForUpdate", () => {
       publishedAt: "2026-06-01T02:14:49Z"
     });
     expect(deps.fetch).toHaveBeenCalledWith("https://api.github.com/repos/gr8woo/gmail-mac-client/releases/latest", {
-      headers: { Accept: "application/vnd.github+json" }
+      headers: {
+        Accept: "application/vnd.github+json",
+        "User-Agent": "Simple-Gmail-Client"
+      }
     });
   });
 
@@ -80,6 +98,37 @@ describe("checkForUpdate", () => {
       available: false,
       currentVersion: "0.1.1",
       latestVersion: "0.1.1"
+    });
+  });
+
+  it("falls back to GitHub's latest release redirect when the API rate limit is exhausted", async () => {
+    const deps = createDeps({
+      fetch: vi
+        .fn()
+        .mockResolvedValueOnce(rateLimitResponse())
+        .mockResolvedValueOnce(
+          new Response(null, {
+            status: 302,
+            headers: {
+              location: "https://github.com/gr8woo/gmail-mac-client/releases/tag/v0.1.4"
+            }
+          })
+        )
+    });
+
+    await expect(checkForUpdate(deps)).resolves.toEqual({
+      available: true,
+      currentVersion: "0.1.1",
+      latestVersion: "0.1.4",
+      releaseUrl: "https://github.com/gr8woo/gmail-mac-client/releases/tag/v0.1.4",
+      assetName: "Simple.Gmail.Client-0.1.4-arm64.dmg",
+      downloadUrl:
+        "https://github.com/gr8woo/gmail-mac-client/releases/download/v0.1.4/Simple.Gmail.Client-0.1.4-arm64.dmg",
+      publishedAt: ""
+    });
+    expect(deps.fetch).toHaveBeenLastCalledWith("https://github.com/gr8woo/gmail-mac-client/releases/latest", {
+      method: "HEAD",
+      redirect: "manual"
     });
   });
 });

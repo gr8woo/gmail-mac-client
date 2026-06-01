@@ -31,10 +31,17 @@ export async function checkForUpdate(deps: UpdateServiceDependencies): Promise<U
   const currentVersion = deps.currentVersion();
   const repository = deps.repository ?? defaultRepository;
   const response = await deps.fetch(`https://api.github.com/repos/${repository}/releases/latest`, {
-    headers: { Accept: "application/vnd.github+json" }
+    headers: {
+      Accept: "application/vnd.github+json",
+      "User-Agent": "Simple-Gmail-Client"
+    }
   });
 
   if (!response.ok) {
+    if (isGitHubRateLimit(response)) {
+      return checkForUpdateFromReleaseRedirect(deps, repository, currentVersion);
+    }
+
     throw new Error(`Unable to check for updates: ${response.status}`);
   }
 
@@ -66,6 +73,46 @@ export async function checkForUpdate(deps: UpdateServiceDependencies): Promise<U
     assetName: readString(asset.name),
     downloadUrl: readString(asset.browser_download_url),
     publishedAt: readString(release.published_at)
+  };
+}
+
+async function checkForUpdateFromReleaseRedirect(
+  deps: UpdateServiceDependencies,
+  repository: string,
+  currentVersion: string
+): Promise<UpdateCheckResult> {
+  const response = await deps.fetch(`https://github.com/${repository}/releases/latest`, {
+    method: "HEAD",
+    redirect: "manual"
+  });
+
+  const location = response.headers.get("location") ?? response.url;
+  const tag = readLatestTagFromReleaseUrl(location);
+  const latestVersion = normalizeVersion(tag);
+
+  if (!latestVersion) {
+    throw new Error("Latest release is missing a version tag");
+  }
+
+  if (compareVersions(latestVersion, currentVersion) <= 0) {
+    return {
+      available: false,
+      currentVersion,
+      latestVersion
+    };
+  }
+
+  const releaseUrl = `https://github.com/${repository}/releases/tag/${tag}`;
+  const assetName = `Simple.Gmail.Client-${latestVersion}-arm64.dmg`;
+
+  return {
+    available: true,
+    currentVersion,
+    latestVersion,
+    releaseUrl,
+    assetName,
+    downloadUrl: `https://github.com/${repository}/releases/download/${tag}/${assetName}`,
+    publishedAt: ""
   };
 }
 
@@ -135,6 +182,14 @@ function findMacArm64Dmg(rawAssets: unknown): GitHubAsset | null {
 
 function normalizeVersion(version: string): string {
   return version.trim().replace(/^v/iu, "");
+}
+
+function isGitHubRateLimit(response: Response): boolean {
+  return response.status === 403 && response.headers.get("x-ratelimit-remaining") === "0";
+}
+
+function readLatestTagFromReleaseUrl(url: string): string {
+  return /\/releases\/tag\/([^/?#]+)/iu.exec(url)?.[1] ?? "";
 }
 
 function readVersionNumber(value: string): number {

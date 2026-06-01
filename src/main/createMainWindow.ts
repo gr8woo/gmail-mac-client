@@ -14,7 +14,7 @@ export async function createMainWindow(): Promise<BrowserWindow> {
     height: 860,
     minWidth: 900,
     minHeight: 640,
-    title: "Gmail Mac Client",
+    title: "Simple Gmail Client",
     webPreferences: {
       preload: join(__dirname, "../preload/preload.js"),
       contextIsolation: true,
@@ -23,7 +23,18 @@ export async function createMainWindow(): Promise<BrowserWindow> {
     }
   });
 
-  const gmailViewController = new GmailViewController(window, store);
+  const gmailViewController = new GmailViewController(window, store, {
+    onProfileMetadata: (profileId, metadata) => {
+      const profile = store.getState().profiles.find((candidate) => candidate.id === profileId);
+
+      if (!profile || (profile.email === metadata.email && profile.avatarUrl === metadata.avatarUrl)) {
+        return;
+      }
+
+      store.updateProfileMetadata(profileId, metadata);
+      window.webContents.send("profiles:changed");
+    }
+  });
   gmailViewController.attach();
   registerProfileIpc(store, gmailViewController);
 
@@ -37,8 +48,13 @@ export async function createMainWindow(): Promise<BrowserWindow> {
     await window.loadFile(join(__dirname, "../renderer/index.html"));
   }
 
+  const lastActiveSurface = store.getState().lastActiveSurface;
+  if (lastActiveSurface) {
+    await gmailViewController.switchToSurface(lastActiveSurface);
+  }
+
   const lastActiveProfileId = store.getState().lastActiveProfileId;
-  if (lastActiveProfileId) {
+  if (!lastActiveSurface && lastActiveProfileId) {
     await gmailViewController.switchToProfile(lastActiveProfileId);
   }
 

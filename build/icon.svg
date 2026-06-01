@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Gmail Mac Client app icon">
+  <defs>
+    <linearGradient id="base" x1="252" x2="790" y1="124" y2="906" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6ee7f9"/>
+      <stop offset="0.42" stop-color="#2f8cff"/>
+      <stop offset="1" stop-color="#3845d8"/>
+    </linearGradient>
+    <linearGradient id="base-glow" x1="240" x2="770" y1="148" y2="782" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.58"/>
+      <stop offset="0.48" stop-color="#ffffff" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="tray" x1="512" x2="512" y1="564" y2="760" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#dfeaf7"/>
+    </linearGradient>
+    <linearGradient id="plane" x1="314" x2="750" y1="278" y2="654" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.58" stop-color="#f6fbff"/>
+      <stop offset="1" stop-color="#d8e8ff"/>
+    </linearGradient>
+    <linearGradient id="plane-fold" x1="438" x2="742" y1="446" y2="686" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#b8d8ff"/>
+      <stop offset="1" stop-color="#ffffff"/>
+    </linearGradient>
+    <linearGradient id="tray-lip" x1="269" x2="767" y1="628" y2="731" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#eaf4ff"/>
+      <stop offset="1" stop-color="#b8d3f5"/>
+    </linearGradient>
+    <filter id="base-shadow" x="48" y="54" width="928" height="934" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="26" stdDeviation="28" flood-color="#12243a" flood-opacity="0.18"/>
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#12243a" flood-opacity="0.08"/>
+    </filter>
+    <filter id="symbol-shadow" x="164" y="216" width="704" height="588" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="24" stdDeviation="22" flood-color="#172554" flood-opacity="0.30"/>
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#172554" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+  <g filter="url(#base-shadow)">
+    <rect x="92" y="92" width="840" height="840" rx="196" fill="url(#base)"/>
+    <rect x="108" y="108" width="808" height="808" rx="182" fill="url(#base-glow)"/>
+    <rect x="104" y="104" width="816" height="816" rx="184" fill="none" stroke="#ffffff" stroke-opacity="0.42" stroke-width="18"/>
+  </g>
+  <path d="M216 322c156-78 390-106 596 24" fill="none" stroke="#ffffff" stroke-opacity="0.15" stroke-width="58" stroke-linecap="round"/>
+  <path d="M168 730c190 90 484 98 688-18" fill="none" stroke="#061b5a" stroke-opacity="0.12" stroke-width="64" stroke-linecap="round"/>
+  <g filter="url(#symbol-shadow)">
+    <path d="M270 574h484c33.14 0 60 26.86 60 60v50c0 33.14-26.86 60-60 60H270c-33.14 0-60-26.86-60-60v-50c0-33.14 26.86-60 60-60Z" fill="url(#tray)"/>
+    <path d="M270 625h484c26.51 0 48 21.49 48 48v19c0 26.51-21.49 48-48 48H270c-26.51 0-48-21.49-48-48v-19c0-26.51 21.49-48 48-48Z" fill="url(#tray-lip)"/>
+    <path d="M282 637h460" fill="none" stroke="#ffffff" stroke-opacity="0.68" stroke-width="34" stroke-linecap="round"/>
+    <path d="M316 356 760 284 580 662 492 516 352 598Z" fill="url(#plane)"/>
+    <path d="m492 516 268-232-180 378Z" fill="url(#plane-fold)"/>
+    <path d="M316 356 492 516" fill="none" stroke="#9beeff" stroke-opacity="0.72" stroke-width="24" stroke-linecap="round"/>
+    <path d="M352 598 492 516l88 146" fill="none" stroke="#ffffff" stroke-opacity="0.62" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M584 663c70-40 125-92 164-158" fill="none" stroke="#244ecb" stroke-opacity="0.14" stroke-width="30" stroke-linecap="round"/>
+  </g>
+  <circle cx="747" cy="273" r="80" fill="#ff7a59"/>
+  <circle cx="747" cy="273" r="47" fill="#ff9a7f"/>
+  <circle cx="748" cy="272" r="24" fill="#ffffff" fill-opacity="0.52"/>
+</svg>

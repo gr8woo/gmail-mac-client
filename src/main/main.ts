@@ -1,7 +1,10 @@
 import { app, BrowserWindow } from "electron";
+import { applyDockIcon } from "./appIcon";
 import { createMainWindow } from "./createMainWindow";
+import { configureMacWebAuthn } from "./webAuthn";
 
-app.setName("Gmail Mac Client");
+app.setName("Simple Gmail Client");
+configureMacWebAuthn(app);
 
 async function ensureWindow(): Promise<BrowserWindow> {
   const existing = BrowserWindow.getAllWindows()[0];
@@ -15,6 +18,7 @@ async function ensureWindow(): Promise<BrowserWindow> {
 }
 
 app.whenReady().then(async () => {
+  applyDockIcon();
   await ensureWindow();
 
   app.on("activate", async () => {

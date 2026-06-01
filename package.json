@@ -1,21 +1,35 @@
 {
-  "name": "gmail-mac-client",
-  "version": "0.1.0",
-  "description": "A dedicated Gmail Mac client with isolated local profiles.",
+  "name": "simple-gmail-client",
+  "version": "0.1.2",
+  "description": "A simple Gmail and Calendar desktop client with isolated local profiles.",
+  "author": "Glen Lee",
   "main": "dist/main/main.js",
   "scripts": {
-    "dev": "concurrently -k -n vite,main,electron \"vite --host 127.0.0.1\" \"tsc -p tsconfig.main.json --watch --preserveWatchOutput\" \"wait-on tcp:5173 dist/main/main.js && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .\"",
+    "dev": "npm run prepare:electron-webauthn && concurrently -k -n vite,main,electron \"vite --host 127.0.0.1\" \"tsc -p tsconfig.main.json --watch --preserveWatchOutput\" \"wait-on tcp:5173 dist/main/main.js && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .\"",
+    "prepare:electron-webauthn": "node scripts/prepare-electron-webauthn.cjs",
     "build": "npm run typecheck && vite build && tsc -p tsconfig.main.json",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
     "test:e2e": "npm run build && playwright test",
     "typecheck": "tsc --noEmit -p tsconfig.renderer.json && tsc --noEmit -p tsconfig.main.json",
-    "dist:mac": "npm run build && electron-builder --mac dir"
+    "dist:mac": "npm run build && electron-builder --mac dmg zip",
+    "dist:mac:dir": "npm run build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac dir -c.mac.identity=null -c.mac.hardenedRuntime=false -c.mac.forceCodeSigning=false -c.mac.notarize=false",
+    "dist:mas": "npm run build && electron-builder --mac mas",
+    "dist:mas:dev": "npm run build && electron-builder --mac mas-dev"
   },
   "dependencies": {
+    "@radix-ui/react-slot": "^1.2.4",
+    "@tailwindcss/vite": "^4.2.4",
     "@vitejs/plugin-react": "^5.0.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.14.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "tailwind-merge": "^3.5.0",
+    "tailwindcss": "^4.2.4"
   },
   "devDependencies": {
     "@playwright/test": "^1.54.0",
@@ -27,7 +41,7 @@
     "@vitest/ui": "^3.0.0",
     "concurrently": "^9.1.0",
     "cross-env": "^7.0.3",
-    "electron": "^39.0.0",
+    "electron": "^42.1.0",
     "electron-builder": "^25.1.0",
     "jsdom": "^26.0.0",
     "typescript": "^5.7.0",

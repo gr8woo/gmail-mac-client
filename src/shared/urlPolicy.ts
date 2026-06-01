@@ -33,5 +33,13 @@ function isInternalHttpsUrl(url: URL): boolean {
     return true;
   }
 
+  if (isGoogleCalendarUrl(url)) {
+    return true;
+  }
+
   return url.hostname === "www.google.com" && /^\/a\/[^/]+\/acs$/u.test(url.pathname);
+}
+
+function isGoogleCalendarUrl(url: URL): boolean {
+  return url.protocol === "https:" && url.hostname === "calendar.google.com";
 }

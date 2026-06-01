@@ -1,10 +1,28 @@
-appId: com.local.gmailmacclient
-productName: Gmail Mac Client
+appId: com.gr8woo.simplegmailclient
+productName: Simple Gmail Client
 directories:
   output: release
 files:
   - dist/**
+  - build/icon.png
   - package.json
 mac:
+  target:
+    - dmg
+    - zip
   category: public.app-category.productivity
-  identity: null
+  icon: build/icon.icns
+  hardenedRuntime: true
+  forceCodeSigning: true
+  notarize: true
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.inherit.plist
+  extendInfo:
+    NSHumanReadableCopyright: Copyright © 2026 Glen Lee. All rights reserved.
+mas:
+  type: distribution
+  identity: 3rd Party Mac Developer Application
+  category: public.app-category.productivity
+  icon: build/icon.icns
+  entitlements: build/entitlements.mas.plist
+  entitlementsInherit: build/entitlements.mas.inherit.plist

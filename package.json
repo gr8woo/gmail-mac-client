@@ -1,6 +1,6 @@
 {
   "name": "simple-gmail-client",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "A simple Gmail and Calendar desktop client with isolated local profiles.",
   "author": "Glen Lee",
   "main": "dist/main/main.js",

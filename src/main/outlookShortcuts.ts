@@ -36,6 +36,10 @@ export function getOutlookShortcutAction(input: OutlookShortcutInput): OutlookSh
     return "refresh";
   }
 
+  if (!hasCommandModifier && !input.shift && (key === "backspace" || key === "delete")) {
+    return "delete";
+  }
+
   if (!hasCommandModifier) {
     return null;
   }

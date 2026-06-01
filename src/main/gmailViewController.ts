@@ -340,6 +340,13 @@ export class GmailViewController {
       return false;
     }
 
+    if (isPlainDeleteShortcut(input)) {
+      void this.triggerCurrentGmailActionIfNotEditing(action, input.key).catch((error: unknown) => {
+        console.error(error);
+      });
+      return true;
+    }
+
     event.preventDefault();
     void this.triggerCurrentGmailAction(action, input.key).catch((error: unknown) => {
       console.error(error);
@@ -485,6 +492,28 @@ export class GmailViewController {
     const webContents = this.currentView ? getLiveWebContents(this.currentView) : null;
 
     if (!webContents) {
+      return;
+    }
+
+    await triggerGmailAction(webContents, action, originalKey);
+  }
+
+  private async triggerCurrentGmailActionIfNotEditing(
+    action: OutlookShortcutAction,
+    originalKey?: string
+  ): Promise<void> {
+    if (this.currentSurface?.appKind !== "mail") {
+      return;
+    }
+
+    const webContents = this.currentView ? getLiveWebContents(this.currentView) : null;
+
+    if (!webContents) {
+      return;
+    }
+
+    const guard = (await webContents.executeJavaScript(createGmailShortcutGuardScript(action), true)) as unknown;
+    if (isGmailActionStatus(guard, "editing")) {
       return;
     }
 
@@ -778,6 +807,18 @@ function isGmailActionTarget(result: unknown): result is { status: "target"; x: 
 
 function isGmailActionStatus(result: unknown, status: string): boolean {
   return Boolean(result) && typeof result === "object" && (result as { status?: unknown }).status === status;
+}
+
+function isPlainDeleteShortcut(input: Input): boolean {
+  const key = input.key?.toLowerCase();
+  return (
+    input.type === "keyDown" &&
+    !input.control &&
+    !input.meta &&
+    !input.shift &&
+    !input.alt &&
+    (key === "backspace" || key === "delete")
+  );
 }
 
 function applyNavigationPolicy(event: Event, url: string, allowedPolicyBypassUrl: string | null): void {

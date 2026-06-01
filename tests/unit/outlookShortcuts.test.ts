@@ -29,9 +29,9 @@ describe("getOutlookShortcutAction", () => {
     expect(getOutlookShortcutAction({ type: "keyDown", key: "f", meta: true })).toBeNull();
   });
 
-  it("lets plain delete keys pass through to Gmail editors", () => {
-    expect(getOutlookShortcutAction({ type: "keyDown", key: "Backspace" })).toBeNull();
-    expect(getOutlookShortcutAction({ type: "keyDown", key: "Delete" })).toBeNull();
+  it("maps plain delete keys to Gmail delete without native accelerators", () => {
+    expect(getOutlookShortcutAction({ type: "keyDown", key: "Backspace" })).toBe("delete");
+    expect(getOutlookShortcutAction({ type: "keyDown", key: "Delete" })).toBe("delete");
   });
 
   it("lets plain letter keys pass through to Gmail editors", () => {

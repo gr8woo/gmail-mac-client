@@ -178,18 +178,39 @@ describe("GmailViewController", () => {
     expect(mailWebContents.sendInputEvent).not.toHaveBeenCalled();
   });
 
-  it("lets delete keys pass through without async replay", async () => {
+  it("runs guarded mail delete for plain delete keys without preventing editor input", async () => {
     const { controller } = createController();
     const event = { preventDefault: vi.fn() };
 
     await controller.switchToSurface({ profileId: "work", appKind: "mail" });
     const mailWebContents = electronMock.views[0]!.webContents;
+    mailWebContents.executeJavaScript.mockResolvedValueOnce({ status: "ready" });
 
-    expect(controller.handleShortcutInput(event as never, { type: "keyDown", key: "Backspace" } as never)).toBe(false);
-    expect(controller.handleShortcutInput(event as never, { type: "keyDown", key: "Delete" } as never)).toBe(false);
+    expect(controller.handleShortcutInput(event as never, { type: "keyDown", key: "Backspace" } as never)).toBe(true);
+    await vi.waitFor(() => {
+      expect(mailWebContents.executeJavaScript).toHaveBeenCalledTimes(2);
+    });
 
     expect(event.preventDefault).not.toHaveBeenCalled();
-    expect(mailWebContents.executeJavaScript).not.toHaveBeenCalled();
+    expect(mailWebContents.sendInputEvent).toHaveBeenCalledWith({ type: "keyDown", keyCode: "3", modifiers: ["shift"] });
+    expect(mailWebContents.sendInputEvent).toHaveBeenCalledWith({ type: "keyUp", keyCode: "3", modifiers: ["shift"] });
+  });
+
+  it("does not run mail delete for plain delete keys while editing", async () => {
+    const { controller } = createController();
+    const event = { preventDefault: vi.fn() };
+
+    await controller.switchToSurface({ profileId: "work", appKind: "mail" });
+    const mailWebContents = electronMock.views[0]!.webContents;
+    mailWebContents.executeJavaScript.mockResolvedValue({ status: "editing" });
+
+    expect(controller.handleShortcutInput(event as never, { type: "keyDown", key: "Backspace" } as never)).toBe(true);
+    expect(controller.handleShortcutInput(event as never, { type: "keyDown", key: "Delete" } as never)).toBe(true);
+    await vi.waitFor(() => {
+      expect(mailWebContents.executeJavaScript).toHaveBeenCalledTimes(2);
+    });
+
+    expect(event.preventDefault).not.toHaveBeenCalled();
     expect(mailWebContents.sendInputEvent).not.toHaveBeenCalled();
   });
 

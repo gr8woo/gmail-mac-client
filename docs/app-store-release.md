@@ -14,10 +14,30 @@ npm run typecheck
 npm test
 npm run test:e2e
 npm run dist:mac
+npm run dist:mac:dir
 npm run dist:mas
 ```
 
-`dist:mac` intentionally disables identity auto-discovery so local unsigned directory builds remain easy. `dist:mas` requires Apple signing assets to be installed locally.
+`dist:mac` is the public GitHub release build. It must produce signed and notarized `dmg`/`zip` artifacts; `electron-builder.yml` sets `mac.forceCodeSigning: true` and `mac.notarize: true` so the build fails instead of publishing a Gatekeeper-blocked app.
+
+`dist:mac:dir` is the local unsigned directory build for development only. It explicitly disables signing, hardened runtime, and notarization, and its output should not be uploaded to GitHub Releases.
+
+`dist:mas` requires Apple signing assets to be installed locally.
+
+## GitHub Release Signing And Notarization
+
+- [ ] Install or provide a `Developer ID Application` certificate for non-App-Store macOS distribution.
+- [ ] Set `CSC_LINK` and `CSC_KEY_PASSWORD`, or install the certificate locally and set `CSC_NAME` when multiple identities are present.
+- [ ] Set Apple notarization credentials for electron-builder, such as `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, and `APPLE_TEAM_ID`.
+- [ ] Build with `npm run dist:mac`.
+- [ ] Verify the app bundle before uploading:
+
+```bash
+codesign --verify --deep --strict --verbose=4 "release/mac-arm64/Simple Gmail Client.app"
+spctl -a -vvv -t execute "release/mac-arm64/Simple Gmail Client.app"
+```
+
+`spctl` should report an accepted Developer ID source. If it does not, do not upload the artifact.
 
 ## Apple Developer Setup
 

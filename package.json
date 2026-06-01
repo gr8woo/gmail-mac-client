@@ -1,6 +1,6 @@
 {
   "name": "simple-gmail-client",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A simple Gmail and Calendar desktop client with isolated local profiles.",
   "author": "Glen Lee",
   "main": "dist/main/main.js",
@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "test:e2e": "npm run build && playwright test",
     "typecheck": "tsc --noEmit -p tsconfig.renderer.json && tsc --noEmit -p tsconfig.main.json",
-    "dist:mac": "npm run build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac dir",
+    "dist:mac": "npm run build && electron-builder --mac dmg zip",
+    "dist:mac:dir": "npm run build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac dir -c.mac.identity=null -c.mac.hardenedRuntime=false -c.mac.forceCodeSigning=false -c.mac.notarize=false",
     "dist:mas": "npm run build && electron-builder --mac mas",
     "dist:mas:dev": "npm run build && electron-builder --mac mas-dev"
   },

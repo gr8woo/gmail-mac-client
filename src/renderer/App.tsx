@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { MessageCircle, RefreshCw, Settings as SettingsIcon } from "lucide-react";
+import { Download, MessageCircle, RefreshCw, Settings as SettingsIcon } from "lucide-react";
 import { gmailClient } from "./api";
 import { AgentChatPanel } from "./components/AgentChatPanel";
 import type { ChatMessage } from "./components/AgentChatPanel";
@@ -9,6 +9,7 @@ import { ProfileSwitcher } from "./components/ProfileSwitcher";
 import { StatusBar } from "./components/StatusBar";
 import type { ActiveGoogleSurface, ProfileState } from "../shared/profile";
 import type { AgentProviderId, AgentProviderStatus } from "../shared/agent";
+import type { AvailableUpdate } from "../shared/update";
 
 const APP_BAR_HEIGHT = 44;
 const DEFAULT_AGENT_PANEL_WIDTH = 360;
@@ -32,6 +33,8 @@ export function App() {
       text: "연결된 AI 서비스를 선택하면 메일 작업을 도울 준비가 되어 있어요."
     }
   ]);
+  const [availableUpdate, setAvailableUpdate] = useState<AvailableUpdate | null>(null);
+  const [isDownloadingUpdate, setIsDownloadingUpdate] = useState(false);
   const [status, setStatus] = useState<string | null>("Loading profiles...");
 
   async function refreshState(options: { clearStatus?: boolean } = {}) {
@@ -47,6 +50,7 @@ export function App() {
       setStatus(caught instanceof Error ? caught.message : "Unable to load profiles");
     });
     void refreshAgentProviders().catch(() => undefined);
+    void checkForAppUpdate().catch(() => undefined);
   }, []);
 
   useEffect(() => {
@@ -98,6 +102,11 @@ export function App() {
     const providers = await gmailClient.getAgentProviders();
     setAgentProviders(providers);
     selectAvailableProvider(providers);
+  }
+
+  async function checkForAppUpdate() {
+    const update = await gmailClient.checkForUpdate();
+    setAvailableUpdate(update.available ? update : null);
   }
 
   function selectAvailableProvider(providers: AgentProviderStatus[]) {
@@ -188,6 +197,25 @@ export function App() {
     }
   }
 
+  async function installUpdate() {
+    if (!availableUpdate || isDownloadingUpdate) {
+      return;
+    }
+
+    setIsDownloadingUpdate(true);
+    setStatus(`Downloading update ${availableUpdate.latestVersion}...`);
+
+    try {
+      const result = await gmailClient.downloadAndOpenUpdate();
+      setAvailableUpdate(result.update);
+      setStatus(`Update ${result.update.latestVersion} opened. Quit this app before installing.`);
+    } catch (caught) {
+      setStatus(caught instanceof Error ? caught.message : "Unable to download update");
+    } finally {
+      setIsDownloadingUpdate(false);
+    }
+  }
+
   if (!state) {
     return <StatusBar message={status} />;
   }
@@ -226,6 +254,18 @@ export function App() {
           onSwitchSurface={switchSurface}
         />
         <StatusBar message={status} />
+        {availableUpdate ? (
+          <button
+            type="button"
+            className="settings-button update-button"
+            disabled={isDownloadingUpdate}
+            onClick={() => void installUpdate()}
+            title={`Install update ${availableUpdate.latestVersion}`}
+          >
+            <Download className="settings-icon" aria-hidden="true" />
+            <span className="visually-hidden">Install update {availableUpdate.latestVersion}</span>
+          </button>
+        ) : null}
         <button
           type="button"
           className="settings-button"

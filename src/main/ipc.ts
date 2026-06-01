@@ -1,5 +1,6 @@
-import { app, ipcMain, session } from "electron";
+import { app, ipcMain, session, shell } from "electron";
 import type { IpcMainInvokeEvent, WebFrameMain } from "electron";
+import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { getPartitionName } from "../shared/profile";
@@ -9,6 +10,7 @@ import type { GmailPageContext } from "../shared/agent";
 import { ClaudeCodeBridge, createClaudeCodeBridge } from "./claudeCodeBridge";
 import { AgentProviderRegistry, createAgentProviderRegistry } from "./agentProviderRegistry";
 import { FileProfileStore } from "./profileStore";
+import { checkForUpdate, downloadAndOpenUpdate } from "./updateService";
 
 const allowedDevServerOrigin = "http://127.0.0.1:5173";
 const profileIpcChannels = [
@@ -29,7 +31,9 @@ const profileIpcChannels = [
   "claudeCode:sendMessage",
   "agent:getProviders",
   "agent:startProviderLogin",
-  "agent:sendMessage"
+  "agent:sendMessage",
+  "appUpdate:check",
+  "appUpdate:downloadAndOpen"
 ] as const;
 
 export interface ProfileSwitchTarget {
@@ -237,6 +241,16 @@ export function registerProfileIpc(
     }
   );
 
+  ipcMain.handle("appUpdate:check", async (event) => {
+    assertTrustedSender(event);
+    return checkForUpdate(createUpdateServiceDependencies());
+  });
+
+  ipcMain.handle("appUpdate:downloadAndOpen", async (event) => {
+    assertTrustedSender(event);
+    return downloadAndOpenUpdate(createUpdateServiceDependencies());
+  });
+
   registered = true;
 }
 
@@ -255,6 +269,16 @@ function getRegistration(): ProfileIpcRegistration {
   }
 
   return activeRegistration;
+}
+
+function createUpdateServiceDependencies() {
+  return {
+    currentVersion: () => app.getVersion(),
+    fetch: (input: string, init?: RequestInit) => fetch(input, init),
+    getDownloadDirectory: () => app.getPath("downloads"),
+    openPath: (path: string) => shell.openPath(path),
+    writeFile
+  };
 }
 
 function requireString(value: unknown, name: string): string {

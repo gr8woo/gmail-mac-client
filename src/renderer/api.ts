@@ -1,5 +1,6 @@
 import type { ActiveGoogleSurface, GmailProfile, ProfileState } from "../shared/profile";
 import type { AgentChatResponse, AgentProviderId, AgentProviderStatus, ClaudeCodeStatus } from "../shared/agent";
+import type { UpdateCheckResult, UpdateDownloadResult } from "../shared/update";
 
 declare global {
   interface Window {
@@ -21,6 +22,8 @@ declare global {
       getAgentProviders(): Promise<AgentProviderStatus[]>;
       startAgentProviderLogin(providerId: AgentProviderId): Promise<void>;
       sendAgentMessage(providerId: AgentProviderId, message: string): Promise<AgentChatResponse>;
+      checkForUpdate(): Promise<UpdateCheckResult>;
+      downloadAndOpenUpdate(): Promise<UpdateDownloadResult>;
       onProfilesChanged(callback: () => void): () => void;
     };
   }
@@ -46,5 +49,7 @@ export const gmailClient = {
   startAgentProviderLogin: (providerId: AgentProviderId) => window.gmailClient.startAgentProviderLogin(providerId),
   sendAgentMessage: (providerId: AgentProviderId, message: string) =>
     window.gmailClient.sendAgentMessage(providerId, message),
+  checkForUpdate: () => window.gmailClient.checkForUpdate(),
+  downloadAndOpenUpdate: () => window.gmailClient.downloadAndOpenUpdate(),
   onProfilesChanged: (callback: () => void) => window.gmailClient.onProfilesChanged(callback)
 };

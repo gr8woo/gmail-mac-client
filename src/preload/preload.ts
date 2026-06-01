@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type { AgentChatResponse, AgentProviderId, AgentProviderStatus, ClaudeCodeStatus } from "../shared/agent";
 import type { ActiveGoogleSurface, GmailProfile, ProfileState } from "../shared/profile";
+import type { UpdateCheckResult, UpdateDownloadResult } from "../shared/update";
 
 export interface GmailClientApi {
   getProfileState(): Promise<ProfileState>;
@@ -20,6 +21,8 @@ export interface GmailClientApi {
   getAgentProviders(): Promise<AgentProviderStatus[]>;
   startAgentProviderLogin(providerId: AgentProviderId): Promise<void>;
   sendAgentMessage(providerId: AgentProviderId, message: string): Promise<AgentChatResponse>;
+  checkForUpdate(): Promise<UpdateCheckResult>;
+  downloadAndOpenUpdate(): Promise<UpdateDownloadResult>;
   onProfilesChanged(callback: () => void): () => void;
 }
 
@@ -42,6 +45,8 @@ const api: GmailClientApi = {
   getAgentProviders: () => ipcRenderer.invoke("agent:getProviders"),
   startAgentProviderLogin: (providerId) => ipcRenderer.invoke("agent:startProviderLogin", providerId),
   sendAgentMessage: (providerId, message) => ipcRenderer.invoke("agent:sendMessage", providerId, message),
+  checkForUpdate: () => ipcRenderer.invoke("appUpdate:check"),
+  downloadAndOpenUpdate: () => ipcRenderer.invoke("appUpdate:downloadAndOpen"),
   onProfilesChanged: (callback) => {
     const listener = () => callback();
     ipcRenderer.on("profiles:changed", listener);

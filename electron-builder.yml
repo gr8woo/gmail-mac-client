@@ -7,9 +7,14 @@ files:
   - build/icon.png
   - package.json
 mac:
+  target:
+    - dmg
+    - zip
   category: public.app-category.productivity
   icon: build/icon.icns
   hardenedRuntime: true
+  forceCodeSigning: true
+  notarize: true
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.inherit.plist
   extendInfo:

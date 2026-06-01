@@ -1,0 +1,19 @@
+package-lock.json
+  h_31472534e8c051 3,9
+package.json
+  h_31472534e8c051 3
+src/main/updateService.ts
+  h_31472534e8c051 34-37,41-44,79-118,187-194
+tests/unit/updateService.test.ts
+  h_31472534e8c051 45-59,85-88,103-133
+---
+{
+  "schema_version": "zax-attestation/1.1.0",
+  "base_commit_sha": "97a4eee1033b104076d99cbeafd5826e581ea50a",
+  "prompts": {},
+  "humans": {
+    "h_31472534e8c051": {
+      "author": "gr8wooya@gmail.com"
+    }
+  }
+}

@@ -6,3 +6,6 @@ test-results/
 build/icon.iconset/
 .superpowers/
 .DS_Store
+
+# Versioned packaging and preview artifacts
+release-*/

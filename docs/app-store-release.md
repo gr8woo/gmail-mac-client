@@ -18,7 +18,7 @@ npm run dist:mac:dir
 npm run dist:mas
 ```
 
-`dist:mac` is the public GitHub release build. It must produce signed and notarized `dmg`/`zip` artifacts; `electron-builder.yml` sets `mac.forceCodeSigning: true` and `mac.notarize: true` so the build fails instead of publishing a Gatekeeper-blocked app.
+`dist:mac` is the public GitHub release build. It must produce signed and notarized `dmg`/`zip` artifacts. `mac.forceCodeSigning: true` requires signing, but electron-builder 25.1.8 can SKIP notarization when no notarization credentials are configured even with `mac.notarize: true`. A successful packaging command alone is NOT release approval: require a successful notarization result, stapled-ticket validation, and Gatekeeper acceptance before distributing. Use `--publish never` while preparing a local candidate.
 
 `dist:mac:dir` is the local unsigned directory build for development only. It explicitly disables signing, hardened runtime, and notarization, and its output should not be uploaded to GitHub Releases.
 
@@ -86,3 +86,60 @@ Current local blocker: `npm run dist:mas` downloads the Electron MAS runtime suc
 - Gmail or Calendar session cannot persist across restarts.
 - App Store upload validation rejects entitlements or bundle metadata.
 - App Review rejects the name, icon, Google service usage, or local CLI integration.
+
+
+## In-app automatic updater (November 2026)
+
+The new implementation uses pinned `electron-updater` 6.8.12 and Squirrel.Mac.
+It preserves the existing app ID, userData directory and profile partitions.
+
+- Startup checks only: no background downloads or installation on ordinary app quit.
+- The existing button displays **업데이트·재시작** and a visible warning to save mail.
+- One click downloads, verifies through electron-updater/Squirrel, applies and relaunches.
+  No extra confirmation dialog. Web Gmail draft-save state cannot reliably be detected;
+  the visible pre-click warning is important. Users should not start composing during download.
+- AI operations block the initial install action. AI started during download postpones
+  application until the user clicks again after work is done. New AI calls are rejected
+  during native verification/restart.
+- Main-process single-flight state prevents repeat clicks/renderer reload duplicate installs.
+- Native installation errors require app restart before retry, avoiding duplicate Squirrel
+  installation listeners. Download/check errors allow ordinary retry.
+- Development, E2E, MAS, unsigned and preview bundle IDs are rejected before querying
+  the production feed. Production bundles must have Developer ID signing and pass
+  codesign verification. Never bypass signature verification or strip quarantine.
+- `src/main/updateService.ts` remains only as a legacy/manual implementation tested
+  separately; it is no longer exposed by IPC or used by the app UI.
+
+### First rollout and required assets
+
+Installed v0.1.6 lacks this automatic replacement code. The migration release must be
+installed manually once. Subsequent versions can use the one-click path. Bump versions
+before a release; do not reuse v0.1.6 for a newer build.
+
+Publish ZIP, DMG, matching `latest-mac.yml` (and generated blockmaps) together from the
+same signed/notarized build. Current public v0.1.6 contains only a DMG, so it is **not**
+a working electron-updater feed. The old local latest-mac.yml does not match the posted
+DMG and must not be reused. Publish configuration defaults to a draft release.
+
+Choose the authorized signing owner before building. This computer has ZIGBANG
+Developer ID identities and a personal Apple Development identity. Apple Development
+is NOT a Developer ID Application distribution identity. Existing installation is signed
+by ZIGBANG; that observation does not authorize using the company's certificate.
+Changing the signing owner should be done in the initial manual migration, then tested.
+
+Pinning updater 6.x avoids an unrelated builder 27 migration. Update-manifest signatures
+available in newer builder/updater versions are not enabled by this change. HTTPS,
+manifest checksums and native macOS application signature verification are retained.
+
+### Validation completed / still needed
+
+Unit tests cover no-update, duplicate clicks, progress, unsupported builds, download
+failure/retry, AI work before/during download, and native signing errors. Renderer tests,
+type checks, build and disposable-profile Electron smoke tests are required after edits.
+No signed release was created, published, downloaded or installed by this implementation.
+A real signed version A → version B upgrade, profile/session persistence, Gatekeeper,
+interrupted download and signing-mismatch integration checks remain release gates.
+
+## v0.1.7 explicit notarization exception
+
+The owner explicitly requested a signed release without Apple notarization for v0.1.7. This is a one-release exception, not a change to the default notarized build policy. Build with `--publish never -c.mac.notarize=false`, retain Developer ID signing, disclose the missing notarization in release notes, and do not remove quarantine or disable Gatekeeper. Browser-downloaded copies may be blocked.

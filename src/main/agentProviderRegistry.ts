@@ -77,7 +77,7 @@ class ClaudeCodeProvider implements AgentProvider {
   readonly id = "claude-code" as const;
   readonly name = "Claude Code";
   readonly description = "Claude Pro / Max 구독 계정으로 로컬 CLI에 로그인해 사용합니다.";
-  readonly loginCommand = "claude login";
+  readonly loginCommand = "claude auth login";
 
   constructor(private readonly bridge: ClaudeCodeBridge, private readonly commandRunner: CommandRunner) {}
 
@@ -140,7 +140,7 @@ class CodexCliProvider implements AgentProvider {
         name: this.name,
         description: this.description,
         installed: true,
-        authenticated: /logged in/i.test(detail),
+        authenticated: /logged in/i.test(detail) && !/not logged in/i.test(detail),
         ...(version ? { version } : {}),
         detail,
         loginCommand: this.loginCommand

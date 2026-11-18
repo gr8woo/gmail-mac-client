@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type { AgentChatResponse, AgentProviderId, AgentProviderStatus, ClaudeCodeStatus } from "../shared/agent";
 import type { ActiveGoogleSurface, GmailProfile, ProfileState } from "../shared/profile";
-import type { UpdateCheckResult, UpdateDownloadResult } from "../shared/update";
+import type { AppUpdateState } from "../shared/update";
 
 export interface GmailClientApi {
   getProfileState(): Promise<ProfileState>;
@@ -21,8 +21,10 @@ export interface GmailClientApi {
   getAgentProviders(): Promise<AgentProviderStatus[]>;
   startAgentProviderLogin(providerId: AgentProviderId): Promise<void>;
   sendAgentMessage(providerId: AgentProviderId, message: string): Promise<AgentChatResponse>;
-  checkForUpdate(): Promise<UpdateCheckResult>;
-  downloadAndOpenUpdate(): Promise<UpdateDownloadResult>;
+  checkForUpdate(): Promise<AppUpdateState>;
+  installUpdate(): Promise<AppUpdateState>;
+      getUpdateState(): Promise<AppUpdateState>;
+      onUpdateState(callback: (state: AppUpdateState) => void): () => void;
   onProfilesChanged(callback: () => void): () => void;
 }
 
@@ -46,7 +48,13 @@ const api: GmailClientApi = {
   startAgentProviderLogin: (providerId) => ipcRenderer.invoke("agent:startProviderLogin", providerId),
   sendAgentMessage: (providerId, message) => ipcRenderer.invoke("agent:sendMessage", providerId, message),
   checkForUpdate: () => ipcRenderer.invoke("appUpdate:check"),
-  downloadAndOpenUpdate: () => ipcRenderer.invoke("appUpdate:downloadAndOpen"),
+  installUpdate: () => ipcRenderer.invoke("appUpdate:install"),
+  getUpdateState: () => ipcRenderer.invoke("appUpdate:state"),
+  onUpdateState: (callback) => {
+    const listener = (_event: unknown, state: AppUpdateState) => callback(state);
+    ipcRenderer.on("appUpdate:changed", listener);
+    return () => { ipcRenderer.removeListener("appUpdate:changed", listener); };
+  },
   onProfilesChanged: (callback) => {
     const listener = () => callback();
     ipcRenderer.on("profiles:changed", listener);

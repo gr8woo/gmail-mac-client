@@ -1,3 +1,4 @@
+import { getAppUpdater } from "./appUpdater";
 import { app, BrowserWindow, shell } from "electron";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -38,6 +39,10 @@ export async function createMainWindow(): Promise<BrowserWindow> {
   gmailViewController.attach();
   registerProfileIpc(store, gmailViewController);
 
+  const unsubscribeUpdate = getAppUpdater().subscribe(state => {
+    if (!window.isDestroyed()) window.webContents.send("appUpdate:changed", state);
+  });
+  window.on("closed", unsubscribeUpdate);
   protectShellNavigation(window);
 
   const devServerUrl = getDevServerUrl();

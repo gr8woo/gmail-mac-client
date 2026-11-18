@@ -47,7 +47,7 @@ class LocalClaudeCodeBridge implements ClaudeCodeBridge {
       const result = await this.commandRunner(claudePath, ["auth", "status"], { timeoutMs: 8000 });
       return {
         installed: true,
-        authenticated: true,
+        authenticated: isAuthenticated(result.stdout || result.stderr),
         ...(version ? { version } : {}),
         detail: (result.stdout || result.stderr || "Claude Code is ready").trim()
       };
@@ -56,7 +56,7 @@ class LocalClaudeCodeBridge implements ClaudeCodeBridge {
         installed: true,
         authenticated: false,
         ...(version ? { version } : {}),
-        detail: getCommandErrorMessage(error) || "터미널에서 `claude login`을 실행해 로그인해 주세요."
+        detail: getCommandErrorMessage(error) || "터미널에서 `claude auth login`을 실행해 로그인해 주세요."
       };
     }
   }
@@ -82,6 +82,10 @@ class LocalClaudeCodeBridge implements ClaudeCodeBridge {
         "json",
         "--max-turns",
         "1",
+        "--tools",
+        "",
+        "--strict-mcp-config",
+        "--no-session-persistence",
         "--append-system-prompt",
         assistantSystemPrompt,
         buildPrompt(prompt, context)
@@ -164,12 +168,20 @@ function extractClaudeMessage(stdout: string): string {
     return "";
   }
 
+  let parsed: unknown;
   try {
-    const parsed = JSON.parse(trimmed) as unknown;
-    return readClaudeResult(parsed);
+    parsed = JSON.parse(trimmed);
   } catch {
     return trimmed;
   }
+  if (parsed && typeof parsed === "object" && (parsed as Record<string, unknown>).is_error === true) {
+    const record = parsed as Record<string, unknown>;
+    const errors = Array.isArray(record.errors)
+      ? record.errors.filter((item): item is string => typeof item === "string").join("\n")
+      : "";
+    throw new Error(readClaudeResult(parsed) || errors || `Claude Code 실행 실패: ${String(record.subtype || "unknown error")}`);
+  }
+  return readClaudeResult(parsed);
 }
 
 function readClaudeResult(value: unknown): string {
@@ -212,4 +224,13 @@ function getCommandErrorMessage(error: unknown): string {
   const stdout = typeof record.stdout === "string" ? record.stdout.trim() : "";
 
   return stderr || stdout || (error instanceof Error ? error.message : "");
+}
+
+function isAuthenticated(output: string): boolean {
+  try {
+    const status = JSON.parse(output) as { loggedIn?: unknown };
+    return status.loggedIn === true;
+  } catch {
+    return /logged in/i.test(output) && !/not logged in/i.test(output);
+  }
 }

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { basename, join } from "node:path";
 import type { AvailableUpdate, UpdateCheckResult, UpdateDownloadResult } from "../shared/update";
 
@@ -11,6 +12,7 @@ export interface UpdateServiceDependencies {
   openPath(path: string): Promise<string>;
   writeFile(path: string, data: Uint8Array): Promise<void>;
   repository?: string;
+  architecture?: string;
 }
 
 interface GitHubRelease {
@@ -25,12 +27,13 @@ interface GitHubAsset {
   browser_download_url?: unknown;
   content_type?: unknown;
   size?: unknown;
+  digest?: unknown;
 }
 
 export async function checkForUpdate(deps: UpdateServiceDependencies): Promise<UpdateCheckResult> {
   const currentVersion = deps.currentVersion();
   const repository = deps.repository ?? defaultRepository;
-  const response = await deps.fetch(`https://api.github.com/repos/${repository}/releases/latest`, {
+  const response = await request(deps, `https://api.github.com/repos/${repository}/releases/latest`, {
     headers: {
       Accept: "application/vnd.github+json",
       "User-Agent": "Simple-Gmail-Client"
@@ -60,9 +63,9 @@ export async function checkForUpdate(deps: UpdateServiceDependencies): Promise<U
     };
   }
 
-  const asset = findMacArm64Dmg(release.assets);
+  const asset = findMacDmg(release.assets, deps.architecture ?? process.arch);
   if (!asset) {
-    throw new Error(`Release ${latestVersion} does not include a macOS arm64 DMG`);
+    throw new Error(`Release ${latestVersion} does not include a compatible macOS DMG`);
   }
 
   return {
@@ -72,7 +75,9 @@ export async function checkForUpdate(deps: UpdateServiceDependencies): Promise<U
     releaseUrl: readString(release.html_url),
     assetName: readString(asset.name),
     downloadUrl: readString(asset.browser_download_url),
-    publishedAt: readString(release.published_at)
+    publishedAt: readString(release.published_at),
+    size: typeof asset.size === "number" ? asset.size : undefined,
+    sha256: /^sha256:[a-f0-9]{64}$/i.test(readString(asset.digest)) ? readString(asset.digest).slice(7) : undefined
   };
 }
 
@@ -81,7 +86,7 @@ async function checkForUpdateFromReleaseRedirect(
   repository: string,
   currentVersion: string
 ): Promise<UpdateCheckResult> {
-  const response = await deps.fetch(`https://github.com/${repository}/releases/latest`, {
+  const response = await request(deps, `https://github.com/${repository}/releases/latest`, {
     method: "HEAD",
     redirect: "manual"
   });
@@ -102,18 +107,8 @@ async function checkForUpdateFromReleaseRedirect(
     };
   }
 
-  const releaseUrl = `https://github.com/${repository}/releases/tag/${tag}`;
-  const assetName = `Simple.Gmail.Client-${latestVersion}-arm64.dmg`;
-
-  return {
-    available: true,
-    currentVersion,
-    latestVersion,
-    releaseUrl,
-    assetName,
-    downloadUrl: `https://github.com/${repository}/releases/download/${tag}/${assetName}`,
-    publishedAt: ""
-  };
+  // The redirect reveals a version, not its asset names. Never fabricate a download URL.
+  throw new Error(`GitHub update checks are temporarily rate limited. Retry later or open https://github.com/${repository}/releases/tag/${tag}`);
 }
 
 export async function downloadAndOpenUpdate(deps: UpdateServiceDependencies): Promise<UpdateDownloadResult> {
@@ -123,12 +118,27 @@ export async function downloadAndOpenUpdate(deps: UpdateServiceDependencies): Pr
     throw new Error("No update is available");
   }
 
-  const response = await deps.fetch(update.downloadUrl);
+  const repository = deps.repository ?? defaultRepository;
+  const url = new URL(update.downloadUrl);
+  if (url.protocol !== "https:" || url.hostname !== "github.com" ||
+      !url.pathname.startsWith(`/${repository}/releases/download/`)) {
+    throw new Error("Update download URL is not from the configured repository");
+  }
+  if (!update.sha256) {
+    throw new Error("This release has no SHA-256 digest. Download it manually from GitHub and verify its macOS signature.");
+  }
+  const response = await request(deps, update.downloadUrl, {}, 300_000);
   if (!response.ok) {
     throw new Error(`Unable to download update: ${response.status}`);
   }
 
   const data = new Uint8Array(await response.arrayBuffer());
+  if (!data.length || (update.size !== undefined && data.length !== update.size)) {
+    throw new Error("Update download is empty or incomplete. Please retry.");
+  }
+  if (update.sha256 && createHash("sha256").update(data).digest("hex") !== update.sha256.toLowerCase()) {
+    throw new Error("Update checksum verification failed. The installer was not opened.");
+  }
   const downloadedPath = join(deps.getDownloadDirectory(), safeDownloadName(update.assetName));
   await deps.writeFile(downloadedPath, data);
 
@@ -161,7 +171,7 @@ export function compareVersions(left: string, right: string): -1 | 0 | 1 {
   return 0;
 }
 
-function findMacArm64Dmg(rawAssets: unknown): GitHubAsset | null {
+function findMacDmg(rawAssets: unknown, architecture: string): GitHubAsset | null {
   if (!Array.isArray(rawAssets)) {
     return null;
   }
@@ -175,7 +185,7 @@ function findMacArm64Dmg(rawAssets: unknown): GitHubAsset | null {
       const asset = rawAsset as GitHubAsset;
       const name = readString(asset.name).toLowerCase();
       const downloadUrl = readString(asset.browser_download_url);
-      return name.endsWith(".dmg") && name.includes("arm64") && Boolean(downloadUrl);
+      return name.endsWith(".dmg") && (name.includes(architecture) || name.includes("universal")) && Boolean(downloadUrl);
     }) ?? null
   );
 }
@@ -204,4 +214,15 @@ function readString(value: unknown): string {
 function safeDownloadName(assetName: string): string {
   const name = basename(assetName);
   return name.endsWith(".dmg") ? name : "Simple-Gmail-Client-update.dmg";
+}
+
+async function request(deps: UpdateServiceDependencies, url: string, init: RequestInit = {}, timeout = 15_000): Promise<Response> {
+  try {
+    return await deps.fetch(url, { ...init, signal: AbortSignal.timeout(timeout) });
+  } catch (error) {
+    if (error && typeof error === "object" && "name" in error && (error.name === "TimeoutError" || error.name === "AbortError")) {
+      throw new Error("Update request timed out. Check your connection and retry.");
+    }
+    throw error;
+  }
 }

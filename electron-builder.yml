@@ -27,3 +27,9 @@ mas:
   icon: build/icon.icns
   entitlements: build/entitlements.mas.plist
   entitlementsInherit: build/entitlements.mas.inherit.plist
+
+publish:
+  provider: github
+  owner: gr8woo
+  repo: gmail-mac-client
+  releaseType: draft

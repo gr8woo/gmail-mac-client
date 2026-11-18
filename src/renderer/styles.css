@@ -22,89 +22,91 @@
 
 :root {
   --color-surface: var(--card);
-  --background: #f7f7f8;
-  --foreground: #1d1c1d;
+  --background: #f5f6f9;
+  --foreground: #202530;
   --card: #ffffff;
-  --card-foreground: #1d1c1d;
-  --primary: #0969da;
+  --card-foreground: #202530;
+  --primary: #4565df;
   --primary-foreground: #ffffff;
-  --secondary: #ececef;
-  --secondary-foreground: #1d1c1d;
-  --muted: #f2f2f4;
-  --muted-foreground: #6f6d73;
-  --accent: #e8f0fe;
-  --accent-foreground: #1264a3;
+  --secondary: #e9edf5;
+  --secondary-foreground: #202530;
+  --muted: #f1f3f8;
+  --muted-foreground: #657086;
+  --accent: #edf0ff;
+  --accent-foreground: #3f59c5;
   --destructive: #cf222e;
   --destructive-foreground: #ffffff;
-  --border: #d9d9df;
-  --input: #cfd0d7;
-  --ring: #1264a3;
+  --border: #e0e5ee;
+  --input: #cbd3e0;
+  --ring: #3f59c5;
   color: var(--foreground);
   background: transparent;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]),
   :root[data-theme="system"] {
-    --background: #1b1d21;
+    --background: #15181f;
     --foreground: #f4f4f4;
-    --card: #22262b;
+    --card: #1d222c;
     --card-foreground: #f2f4f6;
-    --primary: #1d9bd1;
+    --primary: #8fa8ff;
     --primary-foreground: #ffffff;
-    --secondary: #30363d;
+    --secondary: #2b3342;
     --secondary-foreground: #f2f4f6;
-    --muted: #2a2f35;
-    --muted-foreground: #a8a9ad;
-    --accent: #313944;
+    --muted: #252d3a;
+    --muted-foreground: #a8b4c8;
+    --accent: #303c58;
     --accent-foreground: #ffffff;
     --destructive: #ff453a;
     --destructive-foreground: #ffffff;
-    --border: #3d444d;
-    --input: #454b54;
-    --ring: #1d9bd1;
+    --border: #343e50;
+    --input: #46526a;
+    --ring: #8fa8ff;
   }
 }
 
 :root[data-theme="dark"] {
-  --background: #1b1d21;
+  --background: #15181f;
   --foreground: #f4f4f4;
-  --card: #22262b;
+  --card: #1d222c;
   --card-foreground: #f2f4f6;
-  --primary: #1d9bd1;
+  --primary: #8fa8ff;
   --primary-foreground: #ffffff;
-  --secondary: #30363d;
+  --secondary: #2b3342;
   --secondary-foreground: #f2f4f6;
-  --muted: #2a2f35;
-  --muted-foreground: #a8a9ad;
-  --accent: #313944;
+  --muted: #252d3a;
+  --muted-foreground: #a8b4c8;
+  --accent: #303c58;
   --accent-foreground: #ffffff;
   --destructive: #ff453a;
   --destructive-foreground: #ffffff;
-  --border: #3d444d;
-  --input: #454b54;
-  --ring: #1d9bd1;
+  --border: #343e50;
+  --input: #46526a;
+  --ring: #8fa8ff;
 }
 
 :root[data-theme="light"] {
-  --background: #f7f7f8;
-  --foreground: #1d1c1d;
+  --background: #f5f6f9;
+  --foreground: #202530;
   --card: #ffffff;
-  --card-foreground: #1d1c1d;
-  --primary: #0969da;
+  --card-foreground: #202530;
+  --primary: #4565df;
   --primary-foreground: #ffffff;
-  --secondary: #ececef;
-  --secondary-foreground: #1d1c1d;
-  --muted: #f2f2f4;
-  --muted-foreground: #6f6d73;
-  --accent: #e8f0fe;
-  --accent-foreground: #1264a3;
+  --secondary: #e9edf5;
+  --secondary-foreground: #202530;
+  --muted: #f1f3f8;
+  --muted-foreground: #657086;
+  --accent: #edf0ff;
+  --accent-foreground: #3f59c5;
   --destructive: #cf222e;
   --destructive-foreground: #ffffff;
-  --border: #d9d9df;
-  --input: #cfd0d7;
-  --ring: #1264a3;
+  --border: #e0e5ee;
+  --input: #cbd3e0;
+  --ring: #3f59c5;
 }
 
 * {
@@ -878,3 +880,88 @@ button:not(:disabled) {
   white-space: nowrap;
   font-size: 13px;
 }
+
+/* Compact macOS chrome. Keep 44px in sync with the native Gmail view inset. */
+.app-bar {
+  gap: 10px;
+  padding-inline: 14px;
+  background: color-mix(in srgb, var(--card) 94%, var(--background));
+  border-bottom-color: color-mix(in srgb, var(--border) 75%, transparent);
+}
+.profile-switcher { gap: 12px; padding: 3px; }
+.profile-avatar-button { width: 28px; min-width: 28px; height: 28px; border: 0; background: #657794; }
+.profile-avatar-button[aria-current="page"] { box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--primary); }
+.profile-app-badge { width: 15px; height: 15px; font-size: 7px; border-radius: 5px; box-shadow: none; }
+.settings-button { border: 0; border-radius: 9px; background: transparent; color: var(--muted-foreground); }
+.settings-button:hover:not(:disabled) { background: var(--secondary); color: var(--foreground); }
+.settings-button:active:not(:disabled) { transform: translateY(1px); }
+.agent-toggle-button[aria-pressed="true"], .update-button { color: var(--accent-foreground); background: var(--accent); }
+button, input, textarea, select { transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; }
+button:disabled { opacity: .5; }
+.app-bar > .status-bar { max-width: min(40vw, 480px); font-size: 12px; color: var(--muted-foreground); }
+
+.first-run-shell { background: radial-gradient(ellipse at 50% 15%, var(--accent), transparent 65%), var(--background); }
+.first-run { width: min(460px, calc(100vw - 48px)); border: 1px solid var(--border); border-radius: 24px; padding: 36px; background: var(--card); box-shadow: 0 18px 60px rgb(20 35 70 / 7%); }
+.first-run-mark { display: grid; place-items: center; width: 52px; height: 52px; margin-bottom: 24px; color: var(--primary); background: var(--accent); border-radius: 16px; }
+.first-run-mark svg { width: 26px; height: 26px; }
+.first-run h1 { font-size: 24px; letter-spacing: -.6px; line-height: 1.25; margin-bottom: 10px; }
+.first-run-description { margin: 0 0 26px; color: var(--muted-foreground); font-size: 14px; line-height: 1.6; }
+.first-run input, .first-run button { height: 42px; border-radius: 10px; }
+.first-run button { background: var(--primary); color: var(--primary-foreground); border: 0; font-weight: 600; }
+.first-run [role="alert"] { margin: 0; font-size: 13px; color: var(--destructive); }
+
+.settings-titlebar { background: var(--card); padding-inline: 18px; }
+.settings-titlebar h1 { letter-spacing: -.25px; }
+.settings-back-button { border: 0; color: var(--muted-foreground); }
+.settings-body { grid-template-columns: 200px minmax(0, 760px); gap: 32px; padding: 24px; }
+.settings-nav { gap: 6px; padding-right: 16px; border-right: 1px solid var(--border); }
+.settings-nav button { height: 40px; padding-inline: 12px; border-radius: 10px; font-size: 13px; }
+.settings-nav svg { width: 18px; height: 18px; }
+.settings-nav button[aria-current="page"] { background: var(--accent); color: var(--accent-foreground); font-weight: 600; }
+.settings-content { gap: 18px; padding-top: 0; padding-right: 8px; }
+.account-row { min-height: 72px; border-radius: 12px; }
+.account-provider-name { font-weight: 600; }
+.account-email { font-weight: 400; }
+.account-detail-fields { gap: 16px; }
+.theme-options { gap: 10px; }
+.theme-options button { height: 44px; border-radius: 10px; padding-inline: 18px; }
+.ai-provider-icon { border: 0; background: var(--accent); color: var(--accent-foreground); border-radius: 11px; }
+.ai-provider-card { gap: 14px; padding-block: 6px 18px; }
+.ai-status { font-weight: 500; font-size: 11px; }
+.ai-connection-help, .ai-connection-detail { line-height: 1.6; }
+
+.agent-panel { background: var(--background); box-shadow: -4px 0 24px rgb(10 25 55 / 5%); }
+.agent-panel-header { height: 64px; padding-inline: 18px; background: var(--card); }
+.agent-panel-header h2 { font-weight: 600; letter-spacing: -.2px; }
+.agent-provider-select { height: 32px; border-color: var(--border); border-radius: 9px; background: var(--card); }
+.agent-message-list { gap: 18px; padding: 20px 16px; scrollbar-width: thin; scrollbar-color: var(--input) transparent; }
+.agent-message { max-width: 94%; padding: 12px 14px; font-size: 13px; line-height: 1.65; border-radius: 16px; }
+.agent-message-assistant { background: var(--card); border-color: var(--border); border-top-left-radius: 4px; }
+.agent-message-user { border-bottom-right-radius: 4px; background: var(--accent); color: var(--foreground); border-color: transparent; }
+.agent-message-error { border-color: color-mix(in srgb, var(--destructive) 25%, var(--border)); }
+.agent-markdown { gap: 10px; }
+.agent-compose { padding: 14px; gap: 10px; background: var(--card); }
+.agent-compose textarea { height: 82px; border-radius: 12px; padding: 12px; line-height: 1.5; background: var(--background); border-color: var(--border); }
+.agent-compose textarea::placeholder { color: var(--muted-foreground); }
+@media (max-width: 960px) {
+  .settings-body { grid-template-columns: 152px minmax(0, 1fr); gap: 20px; padding: 20px 16px; }
+  .settings-nav { padding-right: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0s !important; animation-duration: 0s !important; }
+}
+/* Calm destructive actions; native-like switches without changing semantics. */
+.account-detail-content > button { justify-self: start; height: 32px; padding-inline: 12px; color: var(--destructive); background: color-mix(in srgb, var(--destructive) 8%, var(--card)); border: 1px solid color-mix(in srgb, var(--destructive) 20%, var(--border)); border-radius: 8px; }
+.account-detail-content > button:hover { background: color-mix(in srgb, var(--destructive) 15%, var(--card)); }
+input[role="switch"] { appearance: none; position: relative; flex-shrink: 0; width: 34px; height: 20px; border: 0; border-radius: 999px; background: var(--input); cursor: pointer; }
+input[role="switch"]::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / 15%); transition: transform 140ms ease; }
+input[role="switch"]:checked { background: var(--primary); }
+input[role="switch"]:checked::after { transform: translateX(14px); }
+:root[data-theme="dark"] { --primary-foreground: #15181f; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]), :root[data-theme="system"] { --primary-foreground: #15181f; }
+}
+
+.update-restart-notice { font-size: 10px; color: var(--muted-foreground); max-width: 160px; line-height: 1.25; }
+.update-button:has(span:not(.visually-hidden)) { display: inline-flex; align-items: center; flex-shrink: 0; width: auto; gap: 5px; padding-inline: 8px; font-size: 11px; }

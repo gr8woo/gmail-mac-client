@@ -1,6 +1,6 @@
 {
   "name": "simple-gmail-client",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "A simple Gmail and Calendar desktop client with isolated local profiles.",
   "author": "Glen Lee",
   "main": "dist/main/main.js",
@@ -23,6 +23,7 @@
     "@vitejs/plugin-react": "^5.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "electron-updater": "6.8.12",
     "lucide-react": "^1.14.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

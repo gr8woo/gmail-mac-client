@@ -9,7 +9,7 @@ import { ProfileSwitcher } from "./components/ProfileSwitcher";
 import { StatusBar } from "./components/StatusBar";
 import type { ActiveGoogleSurface, ProfileState } from "../shared/profile";
 import type { AgentProviderId, AgentProviderStatus } from "../shared/agent";
-import type { AvailableUpdate } from "../shared/update";
+import type { AppUpdateState } from "../shared/update";
 
 const APP_BAR_HEIGHT = 44;
 const DEFAULT_AGENT_PANEL_WIDTH = 360;
@@ -33,7 +33,8 @@ export function App() {
       text: "연결된 AI 서비스를 선택하면 메일 작업을 도울 준비가 되어 있어요."
     }
   ]);
-  const [availableUpdate, setAvailableUpdate] = useState<AvailableUpdate | null>(null);
+  const [updateState, setUpdateState] = useState<AppUpdateState | null>(null);
+  const availableUpdate = updateState?.latestVersion && ["available", "downloading", "ready", "installing"].includes(updateState.phase) ? updateState : null;
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const [isDownloadingUpdate, setIsDownloadingUpdate] = useState(false);
   const [status, setStatus] = useState<string | null>("Loading profiles...");
@@ -45,6 +46,15 @@ export function App() {
       setStatus(null);
     }
   }
+
+  useEffect(() => {
+    const unsubscribe = gmailClient.onUpdateState(next => {
+      setUpdateState(next);
+      if (next.message) setStatus(next.message);
+    });
+    void gmailClient.getUpdateState().then(setUpdateState).catch(() => undefined);
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     void (async () => {
@@ -116,13 +126,11 @@ export function App() {
 
     try {
       const update = await gmailClient.checkForUpdate();
-      setAvailableUpdate(update.available ? update : null);
+      setUpdateState(update);
 
       if (options.showStatus) {
         setStatus(
-          update.available
-            ? `Update ${update.latestVersion} is available.`
-            : `Simple Gmail Client is up to date (${update.currentVersion}).`
+          update.message ?? `Simple Gmail Client is up to date (${update.currentVersion}).`
         );
       }
     } catch (caught) {
@@ -231,9 +239,9 @@ export function App() {
     setStatus(`Downloading update ${availableUpdate.latestVersion}...`);
 
     try {
-      const result = await gmailClient.downloadAndOpenUpdate();
-      setAvailableUpdate(result.update);
-      setStatus(`Update ${result.update.latestVersion} opened. Quit this app before installing.`);
+      const result = await gmailClient.installUpdate();
+      setUpdateState(result);
+      setStatus(result.message ?? null);
     } catch (caught) {
       setStatus(caught instanceof Error ? caught.message : "Unable to download update");
     } finally {
@@ -291,15 +299,19 @@ export function App() {
         <button
           type="button"
           className="settings-button update-button"
-          disabled={isDownloadingUpdate || isCheckingUpdate}
+          disabled={isDownloadingUpdate || isCheckingUpdate || updateState?.phase === "installing" || updateState?.phase === "downloading"}
           onClick={() => void handleUpdateButtonClick()}
-          title={availableUpdate ? `Install update ${availableUpdate.latestVersion}` : "Check for updates"}
+          title={availableUpdate ? "다운로드 후 자동 재시작합니다. 작성 중인 메일이 저장됐는지 확인하세요." : "Check for updates"}
+          aria-label={availableUpdate ? `Update and restart ${availableUpdate.latestVersion}` : "Check for updates"}
         >
           <Download className="settings-icon" aria-hidden="true" />
-          <span className="visually-hidden">
-            {availableUpdate ? `Install update ${availableUpdate.latestVersion}` : "Check for updates"}
+          <span className={availableUpdate ? "" : "visually-hidden"}>
+            {updateState?.phase === "downloading" ? `${Math.round(updateState.percent ?? 0)}%` : availableUpdate ? "업데이트·재시작" : "Check for updates"}
           </span>
         </button>
+        {availableUpdate && !isDownloadingUpdate && updateState?.phase !== "installing" && (
+          <span className="update-restart-notice" role="note">다운로드 후 자동 재시작 · 작성 중 메일 저장 확인</span>
+        )}
         <button
           type="button"
           className="settings-button"

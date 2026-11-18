@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "../../src/renderer/App";
 import type { ActiveGoogleSurface, GmailProfile, ProfileState } from "../../src/shared/profile";
 import type { AgentProviderStatus, ClaudeCodeStatus } from "../../src/shared/agent";
-import type { UpdateCheckResult } from "../../src/shared/update";
+import type { AppUpdateState } from "../../src/shared/update";
 
 const workProfile: GmailProfile = {
   id: "profile_1",
@@ -79,8 +79,8 @@ function installApi(state: TestProfileState) {
       loginCommand: "codex login"
     }
   ];
-  const noUpdate: UpdateCheckResult = {
-    available: false,
+  const noUpdate: AppUpdateState = {
+    phase: "current",
     currentVersion: "0.1.1",
     latestVersion: "0.1.1"
   };
@@ -110,19 +110,9 @@ function installApi(state: TestProfileState) {
     }),
     refreshCurrentSurface: vi.fn().mockResolvedValue(undefined),
     checkForUpdate: vi.fn().mockResolvedValue(noUpdate),
-    downloadAndOpenUpdate: vi.fn().mockResolvedValue({
-      downloadedPath: "/Users/test/Downloads/Simple.Gmail.Client-0.1.2-arm64.dmg",
-      update: {
-        available: true,
-        currentVersion: "0.1.1",
-        latestVersion: "0.1.2",
-        releaseUrl: "https://github.com/gr8woo/gmail-mac-client/releases/tag/v0.1.2",
-        assetName: "Simple.Gmail.Client-0.1.2-arm64.dmg",
-        downloadUrl:
-          "https://github.com/gr8woo/gmail-mac-client/releases/download/v0.1.2/Simple.Gmail.Client-0.1.2-arm64.dmg",
-        publishedAt: "2026-06-01T02:14:49Z"
-      }
-    }),
+    installUpdate: vi.fn().mockResolvedValue({ phase: "installing", currentVersion: "0.1.1", latestVersion: "0.1.2", message: "업데이트 적용 후 재시작됩니다." }),
+    getUpdateState: vi.fn().mockResolvedValue({ phase: "idle", currentVersion: "0.1.1" }),
+    onUpdateState: vi.fn().mockReturnValue(() => undefined),
     setProfileCalendarEnabled: vi.fn().mockImplementation((profileId: string, enabled: boolean) => {
       currentState = normalizeTestProfileState({
         ...currentState,
@@ -280,7 +270,7 @@ describe("App", () => {
       profiles: [workProfile]
     });
     api.checkForUpdate.mockResolvedValueOnce({
-      available: true,
+      phase: "available",
       currentVersion: "0.1.1",
       latestVersion: "0.1.2",
       releaseUrl: "https://github.com/gr8woo/gmail-mac-client/releases/tag/v0.1.2",
@@ -292,7 +282,7 @@ describe("App", () => {
 
     render(<App />);
 
-    expect(await screen.findByRole("button", { name: "Install update 0.1.2" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Update and restart 0.1.2" })).toBeInTheDocument();
   });
 
   it("shows a manual update check button when no update is available", async () => {
@@ -332,7 +322,7 @@ describe("App", () => {
       profiles: [workProfile]
     });
     api.checkForUpdate.mockResolvedValueOnce({
-      available: true,
+      phase: "available",
       currentVersion: "0.1.1",
       latestVersion: "0.1.2",
       releaseUrl: "https://github.com/gr8woo/gmail-mac-client/releases/tag/v0.1.2",
@@ -343,10 +333,10 @@ describe("App", () => {
     });
 
     render(<App />);
-    fireEvent.click(await screen.findByRole("button", { name: "Install update 0.1.2" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Update and restart 0.1.2" }));
 
-    await waitFor(() => expect(api.downloadAndOpenUpdate).toHaveBeenCalled());
-    expect(await screen.findByRole("status")).toHaveTextContent("Update 0.1.2 opened. Quit this app before installing.");
+    await waitFor(() => expect(api.installUpdate).toHaveBeenCalled());
+    expect(await screen.findByRole("status")).toHaveTextContent("업데이트 적용 후 재시작됩니다.");
   });
 
   it("navigates to a settings page and hides the Gmail view", async () => {

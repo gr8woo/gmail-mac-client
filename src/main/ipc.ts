@@ -1,6 +1,6 @@
 import { app, ipcMain, session, shell } from "electron";
 import type { IpcMainInvokeEvent, WebFrameMain } from "electron";
-import { writeFile } from "node:fs/promises";
+
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { getPartitionName } from "../shared/profile";
@@ -10,7 +10,7 @@ import type { GmailPageContext } from "../shared/agent";
 import { ClaudeCodeBridge, createClaudeCodeBridge } from "./claudeCodeBridge";
 import { AgentProviderRegistry, createAgentProviderRegistry } from "./agentProviderRegistry";
 import { FileProfileStore } from "./profileStore";
-import { checkForUpdate, downloadAndOpenUpdate } from "./updateService";
+import { getAppUpdater, withActiveAgentWork } from "./appUpdater";
 
 const allowedDevServerOrigin = "http://127.0.0.1:5173";
 const profileIpcChannels = [
@@ -33,7 +33,8 @@ const profileIpcChannels = [
   "agent:startProviderLogin",
   "agent:sendMessage",
   "appUpdate:check",
-  "appUpdate:downloadAndOpen"
+  "appUpdate:install",
+  "appUpdate:state"
 ] as const;
 
 export interface ProfileSwitchTarget {
@@ -214,7 +215,7 @@ export function registerProfileIpc(
     assertTrustedSender(event);
     const { claudeCodeBridge, target } = getRegistration();
     const context = await target.getCurrentPageContext().catch(() => null);
-    return claudeCodeBridge.sendMessage(requireString(message, "message"), context);
+    return withActiveAgentWork(() => claudeCodeBridge.sendMessage(requireString(message, "message"), context));
   });
 
   ipcMain.handle("agent:getProviders", async (event): Promise<AgentProviderStatus[]> => {
@@ -224,7 +225,7 @@ export function registerProfileIpc(
 
   ipcMain.handle("agent:startProviderLogin", async (event, providerId: unknown): Promise<void> => {
     assertTrustedSender(event);
-    await getRegistration().agentProviderRegistry.startProviderLogin(requireAgentProviderId(providerId));
+    await withActiveAgentWork(() => getRegistration().agentProviderRegistry.startProviderLogin(requireAgentProviderId(providerId)));
   });
 
   ipcMain.handle(
@@ -233,22 +234,25 @@ export function registerProfileIpc(
       assertTrustedSender(event);
       const { agentProviderRegistry, target } = getRegistration();
       const context = await target.getCurrentPageContext().catch(() => null);
-      return agentProviderRegistry.sendMessage(
+      return withActiveAgentWork(() => agentProviderRegistry.sendMessage(
         requireAgentProviderId(providerId),
         requireString(message, "message"),
         context
-      );
+      ));
     }
   );
 
   ipcMain.handle("appUpdate:check", async (event) => {
     assertTrustedSender(event);
-    return checkForUpdate(createUpdateServiceDependencies());
+    return getAppUpdater().check();
   });
-
-  ipcMain.handle("appUpdate:downloadAndOpen", async (event) => {
+  ipcMain.handle("appUpdate:install", async (event) => {
     assertTrustedSender(event);
-    return downloadAndOpenUpdate(createUpdateServiceDependencies());
+    return getAppUpdater().updateAndRestart();
+  });
+  ipcMain.handle("appUpdate:state", (event) => {
+    assertTrustedSender(event);
+    return getAppUpdater().getState();
   });
 
   registered = true;
@@ -271,15 +275,6 @@ function getRegistration(): ProfileIpcRegistration {
   return activeRegistration;
 }
 
-function createUpdateServiceDependencies() {
-  return {
-    currentVersion: () => app.getVersion(),
-    fetch: (input: string, init?: RequestInit) => fetch(input, init),
-    getDownloadDirectory: () => app.getPath("downloads"),
-    openPath: (path: string) => shell.openPath(path),
-    writeFile
-  };
-}
 
 function requireString(value: unknown, name: string): string {
   if (typeof value !== "string") {
